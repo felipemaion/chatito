@@ -1,0 +1,153 @@
+name: release
+
+# Em tag v*: builda APK (Android), .dmg (macOS, sem notarização), .zip (Windows) e a imagem
+# multi-arch do relay em ghcr.io; anexa os binários a um GitHub Release (repo privado ⇒
+# release privado). Distribuição familiar: sideload/abrir com botão direito/aviso SmartScreen.
+on:
+  push:
+    tags: ['v*']
+
+env:
+  FLUTTER_VERSION: 3.47.2
+  IMAGE: ghcr.io/felipemaion/chatito-relay
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+      - run: flutter pub get
+      - name: Decidir modo de assinatura
+        id: mode
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KPASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SPASS: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          if [ -n "$KS" ] && [ -n "$ALIAS" ] && [ -n "$KPASS" ] && [ -n "$SPASS" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Secrets ANDROID_* ausentes — gerando APK debug (não instalável sobre um release assinado)."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build APK release (assinado com a keystore dos secrets)
+        if: steps.mode.outputs.signed == 'true'
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KPASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SPASS: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          umask 077
+          KS_FILE="$RUNNER_TEMP/upload-keystore.jks"
+          printf '%s' "$KS" | base64 -d > "$KS_FILE"
+          # key.properties é lido pelo build.gradle.kts quando o app o suportar; até lá o
+          # APK sai com a chave debug e é re-assinado abaixo com apksigner (v2+v3).
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$KS_FILE" "$SPASS" "$ALIAS" "$KPASS" > android/key.properties
+          flutter build apk --release
+          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$BT/apksigner" sign --ks "$KS_FILE" --ks-key-alias "$ALIAS" \
+            --ks-pass env:SPASS --key-pass env:KPASS \
+            --out "build/chatito-${GITHUB_REF_NAME}-android.apk" \
+            build/app/outputs/flutter-apk/app-release.apk
+          "$BT/apksigner" verify --print-certs "build/chatito-${GITHUB_REF_NAME}-android.apk" | head -3
+          rm -f "$KS_FILE" android/key.properties
+      - name: Build APK debug (sem keystore)
+        if: steps.mode.outputs.signed != 'true'
+        run: |
+          flutter build apk --debug
+          cp build/app/outputs/flutter-apk/app-debug.apk "build/chatito-${GITHUB_REF_NAME}-android-debug.apk"
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: app/build/chatito-*.apk, if-no-files-found: error }
+
+  macos:
+    runs-on: macos-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - name: Empacotar .dmg (sem notarização)
+        run: |
+          brew install create-dmg
+          APP="build/macos/Build/Products/Release/chatito.app"
+          test -d "$APP"
+          create-dmg --volname "Chatito" --window-size 500 300 --icon-size 100 \
+            --icon "chatito.app" 125 150 --app-drop-link 375 150 --no-internet-enable \
+            "build/chatito-${GITHUB_REF_NAME}-macos.dmg" "$APP"
+      - uses: actions/upload-artifact@v4
+        with: { name: macos, path: app/build/chatito-*.dmg, if-no-files-found: error }
+
+  windows:
+    runs-on: windows-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - name: Empacotar .zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build/windows/x64/runner/Release/* `
+            -DestinationPath "build/chatito-$env:GITHUB_REF_NAME-windows.zip"
+      - uses: actions/upload-artifact@v4
+        with: { name: windows, path: app/build/chatito-*.zip, if-no-files-found: error }
+
+  server-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.ref_name }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    needs: [android, macos, windows, server-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Checksums
+        run: cd dist && sha256sum -- * > "chatito-${GITHUB_REF_NAME}-SHA256SUMS.txt" && cat "chatito-${GITHUB_REF_NAME}-SHA256SUMS.txt"
+      - name: Criar GitHub Release com os binários
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "Chatito $GITHUB_REF_NAME" --generate-notes \
+            --notes "Imagem do servidor: \`$IMAGE:$GITHUB_REF_NAME\` (linux/amd64, linux/arm64). Ver README → Instalação." \
+            dist/*
