@@ -175,6 +175,32 @@ func TestBlobExpiryAndDeviceCascade(t *testing.T) {
 		t.Fatalf("fresh file missing: %v", err)
 	}
 
+	// sweep of fully delivered blobs: fresh is complete but undelivered → stays
+	n, err = s.DeleteDeliveredBlobs(ctx)
+	if err != nil || n != 0 {
+		t.Fatalf("sweep undelivered = %d, %v", n, err)
+	}
+	if _, err := s.MarkBlobDelivered(ctx, fresh.ID, r1.ID); err != nil {
+		t.Fatal(err)
+	}
+	n, err = s.DeleteDeliveredBlobs(ctx)
+	if err != nil || n != 1 {
+		t.Fatalf("sweep delivered = %d, %v", n, err)
+	}
+	if _, err := os.Stat(s.BlobPath(fresh.ID)); !os.IsNotExist(err) {
+		t.Fatalf("delivered file should be gone: %v", err)
+	}
+	// recreate fresh for the cascade check below
+	if err := s.CreateBlob(ctx, fresh, []string{r1.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.WriteChunk(ctx, fresh.ID, 0, bytes.NewReader([]byte("ab"))); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CompleteBlob(ctx, fresh.ID); err != nil {
+		t.Fatal(err)
+	}
+
 	// deleting the owner device removes its blobs (rows and files)
 	if err := s.DeleteDevice(ctx, owner.ID); err != nil {
 		t.Fatalf("delete owner: %v", err)

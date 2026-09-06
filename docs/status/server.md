@@ -6,8 +6,11 @@
       tamanho, handlers devices/directory/envelopes/blobs(Range)/admin, contract tests com todas as fixtures. Cobertura ~91%.
 - [x] 3. `internal/ws` — coder/websocket; hello + flush (até 1000 pendentes), ack, ping 30s (fecha após 2 sem pong),
       1 conexão por device (4409), fanout via `api.Notifier`, 4401 ao apagar device. Cobertura ~87%, `-race` ok.
+- [x] 4. `internal/push` — FCM HTTP v1 via `golang.org/x/oauth2/google` (JWT do service account em `FCM_SERVICE_ACCOUNT_B64`;
+      vazio = push desligado), `{"type":"wake"}` prioridade alta, sem `notification`; token UNREGISTERED é apagado. ~90%.
+- [x] 5. `internal/janitor` — sweep horário: envelopes > 30 d, blobs expirados ou já entregues a todos, invites vencidos. ~98%.
 ## Em andamento
-- [ ] 4. `internal/push` (FCM v1 data-only) e 5. `internal/janitor`
+- [ ] 6. `cmd/relay` — flags `-healthcheck`, `admin bootstrap/invite`, graceful shutdown, logs JSON
 ## Bloqueios
 - Nenhum bloqueante. Decisões tomadas (contrato omisso), para validação do orquestrador:
   - Código de erro extra `conflict` (409) para PUT de chunk após `complete` — não está na lista da §3.

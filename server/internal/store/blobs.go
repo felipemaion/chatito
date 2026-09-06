@@ -304,6 +304,24 @@ func (s *Store) ExpireBlobs(ctx context.Context, now time.Time) (int, error) {
 	return n, nil
 }
 
+// DeleteDeliveredBlobs removes complete blobs that every recipient already
+// downloaded (safety net for deliveries whose cleanup failed).
+func (s *Store) DeleteDeliveredBlobs(ctx context.Context) (int, error) {
+	blobs, err := s.listBlobs(ctx, `WHERE complete = 1 AND NOT EXISTS (
+		SELECT 1 FROM blob_recipients r WHERE r.blob_id = blobs.id AND r.delivered = 0)`)
+	if err != nil {
+		return 0, err
+	}
+	var n int
+	for _, b := range blobs {
+		if err := s.DeleteBlob(ctx, b.ID); err != nil && !errors.Is(err, ErrNotFound) {
+			return n, err
+		}
+		n++
+	}
+	return n, nil
+}
+
 func (s *Store) listBlobs(ctx context.Context, where string, args ...any) ([]Blob, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT `+blobCols+` FROM blobs `+where, args...)
 	if err != nil {
