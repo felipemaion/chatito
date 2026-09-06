@@ -38,7 +38,7 @@ class FakeChatFacade implements ChatFacade {
   final Duration latency;
 
   final _session = ValueStream<SessionState>(const SessionState());
-  final _connection = ValueStream<ConnectionState>(ConnectionState.online);
+  final _connection = ValueStream<RelayState>(RelayState.online);
   final _conversations = ValueStream<List<Conversation>>(const []);
   final _directory = ValueStream<List<UserInfo>>(const []);
   final Map<String, ValueStream<List<Message>>> _messages = {};
@@ -50,7 +50,7 @@ class FakeChatFacade implements ChatFacade {
   @override
   Watchable<SessionState> get session => _session;
   @override
-  Watchable<ConnectionState> get connection => _connection;
+  Watchable<RelayState> get connection => _connection;
   @override
   Watchable<List<Conversation>> get conversations => _conversations;
   @override
@@ -60,7 +60,7 @@ class FakeChatFacade implements ChatFacade {
   Watchable<List<Message>> messages(String convId) =>
       _messages.putIfAbsent(convId, () => ValueStream<List<Message>>(const []));
 
-  void setConnection(ConnectionState s) => _connection.value = s;
+  void setConnection(RelayState s) => _connection.value = s;
 
   @override
   Future<Identity> register({

@@ -5,8 +5,11 @@
   flutter_localizations (sdk), intl, open_filex (abrir anexo com app do sistema).
 - **Contrato provisório** `app/lib/ui/contracts.dart` (Dart puro) + fake em memória
   `app/lib/ui/fake/fake_chat_facade.dart` com testes (`test/ui/fake_chat_facade_test.dart`).
+- **2. Tema + layout responsivo**: `ui/theme.dart` (M3, claro/escuro), `ui/layout.dart` (breakpoint 720),
+  `ui/app.dart` (pt-BR), `ui/providers.dart` (riverpod), `ui/router.dart` (go_router com redirect p/ onboarding),
+  `screens/home_shell.dart` (desktop = lista + chat; celular = pilha), lista de conversas. Testes em `test/ui/app_test.dart`.
 ## Em andamento
-- 2. Tema + layout responsivo.
+- 3. Telas: onboarding, chat, contato (safety number + QR), ajustes.
 ## Bloqueios
 - `docs/status/app-core.md` ainda vazio: `ChatFacade` provisória definida por mim (ver `contracts.dart`,
   doc no topo do arquivo). Resumo: `Watchable<T>` (value + stream) para `session`, `connection`,

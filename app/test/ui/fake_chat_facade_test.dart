@@ -159,9 +159,9 @@ void main() {
       final f = FakeChatFacade.seeded();
       await f.setPushToken('tok');
       expect(f.pushToken, 'tok');
-      expect(f.connection.value, ConnectionState.online);
-      f.setConnection(ConnectionState.offline);
-      expect(f.connection.value, ConnectionState.offline);
+      expect(f.connection.value, RelayState.online);
+      f.setConnection(RelayState.offline);
+      expect(f.connection.value, RelayState.offline);
     });
 
     test('autoReply echoes a reply and advances receipts', () async {

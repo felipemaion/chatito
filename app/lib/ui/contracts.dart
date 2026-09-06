@@ -44,7 +44,7 @@ class ChatException implements Exception {
   String toString() => 'ChatException($code): $message';
 }
 
-enum ConnectionState { online, connecting, offline }
+enum RelayState { online, connecting, offline }
 
 enum MessageKind { text, file, keyChange }
 
@@ -223,7 +223,7 @@ abstract class ChatFacade {
   Watchable<SessionState> get session;
 
   /// Estado da conexão com o relay.
-  Watchable<ConnectionState> get connection;
+  Watchable<RelayState> get connection;
 
   /// Conversas ordenadas por atividade (mais recente primeiro).
   Watchable<List<Conversation>> get conversations;
