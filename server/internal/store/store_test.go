@@ -3,6 +3,7 @@ package store_test
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -40,10 +41,24 @@ func TestOpenCreatesSchemaAndIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestOpenFailsOnBadDir(t *testing.T) {
-	if _, err := store.Open(filepath.Join(t.TempDir(), "nope", "x")); err == nil {
-		// creating nested dirs is fine; force failure using a file as dir
-		t.Skip("nested dirs are created")
+func TestOpenFailsWhenDataDirIsAFile(t *testing.T) {
+	f := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(f, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Open(f); err == nil {
+		t.Fatal("expected error when data dir is a file")
+	}
+}
+
+func TestNormalizeInviteCode(t *testing.T) {
+	for in, want := range map[string]string{
+		"7k3m-9qzr": "7K3M-9QZR", "7K3M9QZR": "7K3M-9QZR", " 7k3m 9qzr ": "7K3M-9QZR",
+		"OI1L-OI1L": "0111-0111", "short": "SH0RT",
+	} {
+		if got := store.NormalizeInviteCode(in); got != want {
+			t.Errorf("normalize(%q) = %q, want %q", in, got, want)
+		}
 	}
 }
 
@@ -52,8 +67,12 @@ func TestNewID(t *testing.T) {
 	if len(id) != 26 || id[:4] != "usr_" {
 		t.Fatalf("id = %q", id)
 	}
-	if store.NewID("dev_") == store.NewID("dev_") {
+	a, b := store.NewID("dev_"), store.NewID("dev_")
+	if a == b {
 		t.Fatal("ids must be unique")
+	}
+	if tok := store.NewToken(); len(tok) != 43 {
+		t.Fatalf("token = %q", tok)
 	}
 }
 

@@ -111,12 +111,19 @@ func (s *Store) ListDevices(ctx context.Context) ([]Device, error) {
 
 // DeleteDevice removes a device; pending envelopes and owned blobs cascade.
 func (s *Store) DeleteDevice(ctx context.Context, id string) error {
+	owned, err := s.listBlobs(ctx, `WHERE owner_device = ?`, id)
+	if err != nil {
+		return err
+	}
 	res, err := s.db.ExecContext(ctx, `DELETE FROM devices WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("store: delete device: %w", err)
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrNotFound
+	}
+	for _, b := range owned {
+		s.removeBlobFiles(b)
 	}
 	return nil
 }
