@@ -1,0 +1,22 @@
+name: ci-server
+on:
+  push: { paths: ['server/**', '.github/workflows/ci-server.yml'] }
+  pull_request: { paths: ['server/**', '.github/workflows/ci-server.yml'] }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: server } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: server/go.mod, cache-dependency-path: server/go.sum }
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      - uses: golangci/golangci-lint-action@v6
+        with: { working-directory: server, version: latest }
+      - run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+      - name: coverage gate (>= 80%)
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {sub("%","",$3); print $3}')
+          echo "coverage: $total%"
+          awk -v t="$total" 'BEGIN { exit (t+0 < 80) }'

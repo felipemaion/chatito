@@ -1,0 +1,12 @@
+{
+  "device": {
+    "id": "dev_Zm9vYmFyYmF6cXV4MTIzNA",
+    "user_id": "usr_YWxpY2VhbGljZWFsaWNlMQ",
+    "name": "MacBook do Felipe",
+    "platform": "macos",
+    "identity_key": "hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo=",
+    "created_at": "2026-09-06T18:00:00Z"
+  },
+  "user": { "id": "usr_YWxpY2VhbGljZWFsaWNlMQ", "name": "Felipe", "role": "admin" },
+  "token": "c2VjcmV0LXRva2VuLTMyLWJ5dGVzLWJhc2U2NHVybC1lbmNvZGVk"
+}

@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "id": "usr_YWxpY2VhbGljZWFsaWNlMQ",
+      "name": "Felipe",
+      "role": "admin",
+      "devices": [
+        {
+          "id": "dev_Zm9vYmFyYmF6cXV4MTIzNA",
+          "name": "MacBook do Felipe",
+          "platform": "macos",
+          "identity_key": "hSDwCYkwp1R0i33ctD73Wg2/Og0mOBr066SpjqqbTmo=",
+          "created_at": "2026-09-06T18:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "usr_Ym9iYm9iYm9iYm9iYm9iYjI",
+      "name": "Mãe",
+      "role": "member",
+      "devices": [
+        {
+          "id": "dev_YW5kcm9pZGRldmljZTAwMDE",
+          "name": "Galaxy",
+          "platform": "android",
+          "identity_key": "3p7bfXt9wbTTW2HC7OQ1Nz+DQ8hbeGdNrfx+FG+IK08=",
+          "created_at": "2026-09-06T18:05:00Z"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+# Produção (Oracle). Sem "ports:" — o Caddy alcança pela rede externa "proxy".
+services:
+  relay:
+    build: { context: .., dockerfile: docker/Dockerfile }
+    image: chatito-relay:local
+    container_name: chatito-relay
+    restart: unless-stopped
+    volumes:
+      - /home/${CHATITO_DOMAIN:?}/data:/app/data
+    env_file:
+      - /home/${CHATITO_DOMAIN:?}/secrets/env
+    networks: [proxy]
+    healthcheck:
+      test: ["CMD", "/relay", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+networks:
+  proxy:
+    external: true

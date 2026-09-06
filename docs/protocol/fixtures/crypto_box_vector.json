@@ -1,0 +1,12 @@
+{
+  "ciphertext": "TWuF6hGEJBMaDOyyHNMsuCaPpO0dKFgKVPkEznz57iksqk+7aG8zMKH44t/SF1qmygO1bDM7jnAVtwq/gmbhdikWASCUnMFTsvIIhC1GqXwMYp3yI8cTxDjewv8hIyfnhq0se+y5eK0kr5DTzmOhtRobdhmtuoD58SlWnfKAbGD5twIZmG93xhv1v9Z4J3w+gDp/Eg9Xn4xhTKZIAF67a002SWLsZEEnJ/2sSaILvq+xv88QZiXPeUWUZjIxypVj1X+uyTDbUORYtEVkeOs8H4TnXMQ=",
+  "description": "crypto_box_easy vector. sender=A, recipient=B. Both sides MUST reproduce ciphertext and decrypt it.",
+  "nonce": "AAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qh",
+  "plaintext_utf8": "{\"v\":1,\"msg_id\":\"3f1e2d7c-8a4b-4c6d-9e0f-1a2b3c4d5e6f\",\"conv_id\":\"u:usr_YWxpY2VhbGljZWFsaWNlMQ:usr_Ym9iYm9iYm9iYm9iYm9iYjI\",\"kind\":\"text\",\"sent_at\":\"2026-09-06T18:10:00Z\",\"body\":\"Oi! Chegou bem?\"}",
+  "recipient_pk": "ja/P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI=",
+  "recipient_sk": "yMfGxcTDwsHAv769vLu6ubi3trW0s7KxsK+urayrqqk=",
+  "safety_number": "199536958191541176710016858673771955110372306949674300131392",
+  "safety_number_rule": "h=SHA256(min(pkA,pkB)||max(pkA,pkB)); for i in 0..11: v=big-endian uint of bytes h[(5i..5i+4) mod 32]; group_i=v mod 100000 zero-padded to 5 digits",
+  "sender_pk": "B6N8vBQgk8i3VdwbEOhstCY3StFqqFPtC9/AsrhtHHw=",
+  "sender_sk": "AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="
+}

@@ -1,0 +1,11 @@
+# Desenvolvimento local: docker compose -f docker/docker-compose.dev.yml up --build
+services:
+  relay:
+    build: { context: .., dockerfile: docker/Dockerfile }
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: [relay-data:/app/data]
+    environment:
+      RELAY_ADDR: ":8080"
+      RELAY_DATA_DIR: /app/data
+volumes:
+  relay-data:

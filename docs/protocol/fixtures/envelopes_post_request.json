@@ -1,0 +1,9 @@
+{
+  "envelopes": [
+    {
+      "to_device": "dev_YW5kcm9pZGRldmljZTAwMDE",
+      "nonce": "aWtlIGx1bmNoIHRpbWUgYXQgMTMh",
+      "ciphertext": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+name: ci-app
+on:
+  push: { paths: ['app/**', 'docs/protocol/**', '.github/workflows/ci-app.yml'] }
+  pull_request: { paths: ['app/**', 'docs/protocol/**', '.github/workflows/ci-app.yml'] }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: 3.47.2, cache: true }
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze --fatal-infos
+      - run: flutter test --coverage
+      - name: coverage gate (>= 80%, excluding ui/platform/generated)
+        run: |
+          sudo apt-get install -y -qq lcov >/dev/null
+          lcov --remove coverage/lcov.info 'lib/ui/*' 'lib/platform/*' '*.g.dart' '*.freezed.dart' 'lib/main.dart' -o coverage/core.info --ignore-errors unused
+          total=$(lcov --summary coverage/core.info 2>&1 | awk '/lines/ {gsub("%","",$2); print $2}')
+          echo "core coverage: ${total:-0}%"
+          awk -v t="${total:-0}" 'BEGIN { exit (t+0 < 80) }'
+  build-desktop:
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, target: windows }
+          - { os: macos-latest, target: macos }
+    runs-on: ${{ matrix.os }}
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: 3.47.2, cache: true }
+      - run: flutter build ${{ matrix.target }} --release

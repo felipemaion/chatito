@@ -1,0 +1,31 @@
+# Go
+server/bin/
+server/coverage.out
+*.test
+# Flutter/Dart
+app/.dart_tool/
+app/build/
+app/.flutter-plugins*
+app/.packages
+app/pubspec.lock.bak
+app/coverage/
+app/android/local.properties
+app/android/key.properties
+app/android/app/google-services.json
+app/**/*.iml
+app/.idea/
+app/macos/Pods/
+app/ios/
+app/linux/
+app/web/
+# Secrets
+.env
+secrets/
+*.pem
+*.jks
+*.keystore
+service-account*.json
+# OS/editor
+.DS_Store
+.vscode/
+*.log

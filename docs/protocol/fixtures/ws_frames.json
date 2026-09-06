@@ -1,0 +1,18 @@
+{
+  "hello": { "type": "hello", "device_id": "dev_YW5kcm9pZGRldmljZTAwMDE", "pending": 1 },
+  "envelope": {
+    "type": "envelope",
+    "envelope": {
+      "id": "env_ZW52ZWxvcGUwMDAwMDAwMDAx",
+      "from_device": "dev_Zm9vYmFyYmF6cXV4MTIzNA",
+      "to_device": "dev_YW5kcm9pZGRldmljZTAwMDE",
+      "nonce": "aWtlIGx1bmNoIHRpbWUgYXQgMTMh",
+      "ciphertext": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "created_at": "2026-09-06T18:10:00Z"
+    }
+  },
+  "ack": { "type": "ack", "ids": ["env_ZW52ZWxvcGUwMDAwMDAwMDAx"] },
+  "ping": { "type": "ping" },
+  "pong": { "type": "pong" },
+  "error": { "type": "error", "error": { "code": "unauthorized", "message": "invalid token" } }
+}

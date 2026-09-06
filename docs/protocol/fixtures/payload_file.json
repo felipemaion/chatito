@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "msg_id": "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+  "conv_id": "g:familia",
+  "kind": "file",
+  "sent_at": "2026-09-06T18:12:00Z",
+  "body": "Fotos da viagem",
+  "attachments": [
+    {
+      "blob_id": "blob_YmxvYjAwMDAwMDAwMDAwMDAx",
+      "name": "praia.jpg",
+      "size": 2457600,
+      "mime": "image/jpeg",
+      "key": "K2V5a2V5a2V5a2V5a2V5a2V5a2V5a2V5a2V5a2V5a2U=",
+      "header": "aGVhZGVyaGVhZGVyaGVhZGVyaGVhZGVy",
+      "chunk_size": 65536
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "msg_id": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+  "conv_id": "u:usr_YWxpY2VhbGljZWFsaWNlMQ:usr_Ym9iYm9iYm9iYm9iYm9iYjI",
+  "kind": "receipt",
+  "sent_at": "2026-09-06T18:11:00Z",
+  "receipt": { "msg_id": "3f1e2d7c-8a4b-4c6d-9e0f-1a2b3c4d5e6f", "status": "read" }
+}
