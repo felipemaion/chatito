@@ -58,8 +58,5 @@
   `conversations`, `directory`, `messages(convId)`; métodos `register`, `sendText`, `sendFile`,
   `downloadAttachment`, `markRead`, `safetyNumber(deviceId)`, `removeDevice`, `setPushToken`, `sync`.
   Progresso de anexo vai dentro de `Message.attachments[].transfer`. Orquestrador unifica no merge.
-- CI `ci-app.yml`: o gate de cobertura exclui `lib/ui/*` e `lib/main.dart`; nesta branch o
-  `core.info` fica vazio (não há código de core) e o `lcov --summary` pode falhar. Sugiro ao infra
-  tolerar tracefile vazio (`|| true` no summary) até o merge do app-core.
 ## Próximo
 - Telas (onboarding, conversas, chat, contato, ajustes), anexos, notificações, widget tests.
