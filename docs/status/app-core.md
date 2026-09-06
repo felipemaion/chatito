@@ -15,8 +15,14 @@
   ISO para preservar ms) + `KeyStore` (interface, `MapKeyStore` base e `InMemoryKeyStore`). Impl real sobre
   `flutter_secure_storage` é 3 métodos (`read/write/delete`) estendendo `MapKeyStore` — fica em `platform/`.
 
+- [x] 5. `lib/transport` — `RelayApi` (dio, todo o REST, erros → `RelayException{code,statusCode}`),
+  `RelayWs` (hello/envelope/ping/error, ack automático após o handler, backoff exponencial com jitter,
+  para em 4401/4409), `ChunkUploader` (chunks do tamanho do servidor, retentativa por chunk, progresso).
+  Testes contra `test/support/fake_relay.dart` (relay em memória que fala o protocolo v1 — reutilizável
+  pelo app-ui/integração).
+
 ## Em andamento
-- [ ] 5. `lib/transport` (RelayApi, RelayWs, ChunkUploader).
+- [ ] 6. `lib/domain` real: casos de uso + `RealChatFacade`.
 
 ## Bloqueios
 - **CI (infra):** testes de `crypto` rodam na VM com o pacote `sodium` e precisam de `libsodium` nativo.
