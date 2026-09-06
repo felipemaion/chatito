@@ -18,6 +18,7 @@ jobs:
         run: |
           sudo apt-get install -y -qq lcov >/dev/null
           lcov --remove coverage/lcov.info 'lib/ui/*' 'lib/platform/*' '*.g.dart' '*.freezed.dart' 'lib/main.dart' -o coverage/core.info --ignore-errors unused
+          grep -q '^SF:' coverage/core.info || { echo "sem arquivos de núcleo ainda — gate ignorado"; exit 0; }
           total=$(lcov --summary coverage/core.info 2>&1 | awk '/lines/ {gsub("%","",$2); print $2}')
           echo "core coverage: ${total:-0}%"
           awk -v t="${total:-0}" 'BEGIN { exit (t+0 < 80) }'

@@ -2,7 +2,7 @@
 
 > Mensageiro privado da família (Felipe, filhos e a mãe deles). Clientes macOS, Windows e
 > Android. Servidor de relay **cego** (E2E) que guarda envelopes só até serem entregues.
-> Status: **plano v1 — aguardando aprovação para iniciar a Fase 0.**
+> Status: **aprovado em 2026-09-06 — Fase 0 concluída, Fase 1 em andamento (4 agentes).**
 
 ---
 
@@ -152,9 +152,9 @@ Nova janela `dev` na sessão `Chatito`, 5 panes (cada `claude` interativo, sem `
 
 | Pane | Agente | Worktree / branch | Escopo |
 | --- | --- | --- | --- |
-| `dev.0` | **A · server** | `~/Projects/chatito-wt/server` · `feat/server-core` | `server/**` |
-| `dev.1` | **B · app-core** | `~/Projects/chatito-wt/app-core` · `feat/app-core` | `app/lib/{crypto,protocol,transport,storage,domain}` |
-| `dev.2` | **C · app-ui** | `~/Projects/chatito-wt/app-ui` · `feat/app-ui` | `app/lib/ui`, `app/lib/platform`; usa interfaces do B com fakes |
+| `dev.0` | **A · server** | `~/Projects/chatito-wt/server` · `feat/server` | `server/**` |
+| `dev.2` | **B · app-core** | `~/Projects/chatito-wt/app-core` · `feat/app-core` | `app/lib/{crypto,protocol,transport,storage,domain}` |
+| `dev.1` | **C · app-ui** | `~/Projects/chatito-wt/app-ui` · `feat/app-ui` | `app/lib/ui`, `app/lib/platform`; usa interfaces do B com fakes |
 | `dev.3` | **D · infra** | `~/Projects/chatito-wt/infra` · `feat/infra` | `docker/`, `.github/`, `cron/`, docs |
 | `dev.4` | shell | `~/Projects/Chatito` (main) | testes/merges/logs do orquestrador |
 
