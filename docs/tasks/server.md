@@ -1,4 +1,4 @@
-# Tarefa — agente **server** (branch `feat/server-core`, escopo `server/**`)
+# Tarefa — agente **server** (branch `feat/server`, escopo `server/**`)
 
 Implementar o relay completo conforme `docs/PROTOCOL.md`, em Go 1.25, **TDD**, sem CGO.
 
