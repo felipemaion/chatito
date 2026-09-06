@@ -4,8 +4,10 @@
       (chunks em disco, assemble no complete, recipients/entrega, expiração). Cobertura ~79% no pacote.
 - [x] 2. `internal/api` — bearer auth (SHA-256), erros JSON, rate limit 60/min/device (janela fixa), limites de
       tamanho, handlers devices/directory/envelopes/blobs(Range)/admin, contract tests com todas as fixtures. Cobertura ~91%.
+- [x] 3. `internal/ws` — coder/websocket; hello + flush (até 1000 pendentes), ack, ping 30s (fecha após 2 sem pong),
+      1 conexão por device (4409), fanout via `api.Notifier`, 4401 ao apagar device. Cobertura ~87%, `-race` ok.
 ## Em andamento
-- [ ] 3. `internal/ws` — hello/flush/ack/ping, 1 conexão por device, fanout em tempo real
+- [ ] 4. `internal/push` (FCM v1 data-only) e 5. `internal/janitor`
 ## Bloqueios
 - Nenhum bloqueante. Decisões tomadas (contrato omisso), para validação do orquestrador:
   - Código de erro extra `conflict` (409) para PUT de chunk após `complete` — não está na lista da §3.

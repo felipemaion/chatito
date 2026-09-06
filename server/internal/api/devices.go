@@ -91,6 +91,9 @@ func (s *Server) deleteDevice(w http.ResponseWriter, r *http.Request) error {
 	if err := s.store.DeleteDevice(ctx, target.ID); err != nil && !errors.Is(err, store.ErrNotFound) {
 		return err
 	}
+	if dc, ok := s.notifier.(Disconnecter); ok {
+		dc.Disconnect(target.ID)
+	}
 	s.log.Info("device deleted", "device", target.ID, "by", caller.ID)
 	w.WriteHeader(http.StatusNoContent)
 	return nil

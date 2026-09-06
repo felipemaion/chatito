@@ -19,6 +19,12 @@ type Notifier interface {
 	Notify(deviceID string, envs []store.Envelope)
 }
 
+// Disconnecter is optionally implemented by a Notifier to drop the live
+// connection of a device that no longer exists.
+type Disconnecter interface {
+	Disconnect(deviceID string)
+}
+
 // Pusher wakes a device through a push service (FCM) without any content.
 type Pusher interface {
 	Wake(ctx context.Context, fcmToken string) error
