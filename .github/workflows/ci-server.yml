@@ -12,9 +12,9 @@ jobs:
         with: { go-version-file: server/go.mod, cache-dependency-path: server/go.sum }
       - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
-      - uses: golangci/golangci-lint-action@v6
-        with: { working-directory: server, version: latest }
-      - run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+      - uses: golangci/golangci-lint-action@v8
+        with: { working-directory: server, version: v2.5 }
+      - run: go test ./... -race && go test ./internal/... -race -coverprofile=coverage.out -covermode=atomic
       - name: coverage gate (>= 80%)
         run: |
           total=$(go tool cover -func=coverage.out | awk '/^total:/ {sub("%","",$3); print $3}')
