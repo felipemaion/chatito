@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -11,8 +12,7 @@ import (
 // IssueInvite creates (if needed) the target user and issues an invite for it.
 // Exactly one of userName / userID must be given. Shared by the HTTP handler
 // and the admin CLI.
-func (s *Server) IssueInvite(r *http.Request, userName, userID string) (store.Invite, error) {
-	ctx := r.Context()
+func (s *Server) IssueInvite(ctx context.Context, userName, userID string) (store.Invite, error) {
 	var u store.User
 	var err error
 	switch {
@@ -44,7 +44,7 @@ func (s *Server) adminInvite(w http.ResponseWriter, r *http.Request) error {
 	if len(req.UserName) > maxNameLen {
 		return errorf(http.StatusBadRequest, CodeValidation, "user_name too long")
 	}
-	inv, err := s.IssueInvite(r, req.UserName, req.UserID)
+	inv, err := s.IssueInvite(r.Context(), req.UserName, req.UserID)
 	if err != nil {
 		return err
 	}

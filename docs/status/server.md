@@ -9,8 +9,11 @@
 - [x] 4. `internal/push` — FCM HTTP v1 via `golang.org/x/oauth2/google` (JWT do service account em `FCM_SERVICE_ACCOUNT_B64`;
       vazio = push desligado), `{"type":"wake"}` prioridade alta, sem `notification`; token UNREGISTERED é apagado. ~90%.
 - [x] 5. `internal/janitor` — sweep horário: envelopes > 30 d, blobs expirados ou já entregues a todos, invites vencidos. ~98%.
+- [x] 6. `cmd/relay` — `-healthcheck` (GET loopback `/healthz`), `admin bootstrap --name X` (recusa se já houver
+      usuários), `admin invite --user X`, graceful shutdown (SIGINT/SIGTERM → fecha WS, `Shutdown` 15 s), logs JSON `slog`.
+      `run()` testável; cobertura 83%. Total do módulo: **85,4%**; `golangci-lint` limpo (`.golangci.yml` ignora só `fmt.Fprint*`).
 ## Em andamento
-- [ ] 6. `cmd/relay` — flags `-healthcheck`, `admin bootstrap/invite`, graceful shutdown, logs JSON
+- [ ] 7. `docker compose -f docker/docker-compose.dev.yml up --build` respondendo `/healthz`
 ## Bloqueios
 - Nenhum bloqueante. Decisões tomadas (contrato omisso), para validação do orquestrador:
   - Código de erro extra `conflict` (409) para PUT de chunk após `complete` — não está na lista da §3.
