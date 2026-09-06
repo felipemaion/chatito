@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -490,10 +491,21 @@ func TestEnvelopes(t *testing.T) {
 	if r = e.do("POST", "/v1/envelopes", admTok, exact); r.code != 202 {
 		t.Fatalf("64KiB ciphertext = %d %s", r.code, r.body)
 	}
-	// a push failure must not fail the request
+	// a push failure must not fail the request, and the token is kept
 	e.pusher.err = io.ErrUnexpectedEOF
 	if r = e.do("POST", "/v1/envelopes", admTok, exact); r.code != 202 {
 		t.Fatalf("push error leaked = %d %s", r.code, r.body)
+	}
+	if d, _ := e.st.GetDevice(context.Background(), memDev); d.FCMToken == nil {
+		t.Fatal("transient push error must keep the token")
+	}
+	// an unregistered token is forgotten
+	e.pusher.err = fmt.Errorf("wrapped: %w", api.ErrPushUnregistered)
+	if r = e.do("POST", "/v1/envelopes", admTok, exact); r.code != 202 {
+		t.Fatalf("unregistered push leaked = %d %s", r.code, r.body)
+	}
+	if d, _ := e.st.GetDevice(context.Background(), memDev); d.FCMToken != nil {
+		t.Fatal("unregistered token should be cleared")
 	}
 }
 

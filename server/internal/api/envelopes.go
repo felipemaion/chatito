@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -84,6 +85,11 @@ func (s *Server) deliver(ctx context.Context, deviceID string, envs []store.Enve
 	}
 	if err := s.pusher.Wake(ctx, *d.FCMToken); err != nil {
 		s.log.Warn("push failed", "device", deviceID, "err", err)
+		if errors.Is(err, ErrPushUnregistered) {
+			if err := s.store.SetDevicePushToken(ctx, deviceID, nil); err != nil {
+				s.log.Warn("clear push token failed", "device", deviceID, "err", err)
+			}
+		}
 	}
 }
 

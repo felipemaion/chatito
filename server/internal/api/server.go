@@ -30,6 +30,10 @@ type Pusher interface {
 	Wake(ctx context.Context, fcmToken string) error
 }
 
+// ErrPushUnregistered is returned (wrapped) by a Pusher when the push service
+// reports the token as no longer valid; the server then forgets the token.
+var ErrPushUnregistered = errors.New("push token unregistered")
+
 // Options configures a Server.
 type Options struct {
 	Store     *store.Store
