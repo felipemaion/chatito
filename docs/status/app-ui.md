@@ -20,8 +20,15 @@
   em Android/macOS, resultado conferem/não conferem, botão Conversar); `screens/settings_screen.dart`
   (meus aparelhos c/ remoção confirmada, switch de notificações em `ui/settings.dart`, sobre).
   Testes: `test/ui/contact_detail_test.dart`, `test/ui/settings_test.dart`.
+- **5. Notificações + bootstrap**: `ui/notification_coordinator.dart` (Dart puro: notifica mensagens recebidas
+  fora da conversa aberta/foreground, respeita preferência, toque abre a conversa), `platform/notifications.dart`
+  (`flutter_local_notifications` macOS/Windows/Android/Linux), `platform/push.dart` (`FirebasePushWaker` só no
+  Android: `Firebase.initializeApp()` em try/catch — sem `google-services.json` o app segue; `{"type":"wake"}`
+  → `facade.sync()`; token → `facade.setPushToken`), `platform/app_services.dart` (liga tudo + sync ao voltar
+  ao foreground), `platform/window.dart` (tamanho mínimo/título no desktop), `main.dart` real.
+  Testes: `test/ui/notification_coordinator_test.dart`, `test/ui/push_test.dart`.
 ## Em andamento
-- 5. Notificações (desktop local; Android FCM wake → `facade.sync()`), bootstrap em `main.dart`.
+- 6. Verificação final: build macOS, cobertura, PR.
 ## Bloqueios
 - `docs/status/app-core.md` ainda vazio: `ChatFacade` provisória definida por mim (ver `contracts.dart`,
   doc no topo do arquivo). Resumo: `Watchable<T>` (value + stream) para `session`, `connection`,

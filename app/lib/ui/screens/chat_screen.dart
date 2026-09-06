@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../platform/files.dart';
 import '../../platform/platform_info.dart';
 import '../contracts.dart';
+import '../focus.dart';
 import '../providers.dart';
 import '../strings.dart';
 import '../widgets/composer.dart';
@@ -22,17 +23,29 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scroll = ScrollController();
+  late final UiFocus _focus;
 
   @override
   void initState() {
     super.initState();
+    _focus = ref.read(uiFocusProvider)..activeConvId = widget.convId;
     Future<void>.microtask(
       () => ref.read(chatFacadeProvider).markRead(widget.convId),
     );
   }
 
   @override
+  void didUpdateWidget(covariant ChatScreen old) {
+    super.didUpdateWidget(old);
+    if (old.convId != widget.convId) {
+      _focus.activeConvId = widget.convId;
+      ref.read(chatFacadeProvider).markRead(widget.convId);
+    }
+  }
+
+  @override
   void dispose() {
+    if (_focus.activeConvId == widget.convId) _focus.activeConvId = null;
     _scroll.dispose();
     super.dispose();
   }
