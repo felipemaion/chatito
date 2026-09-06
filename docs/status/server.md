@@ -12,10 +12,21 @@
 - [x] 6. `cmd/relay` — `-healthcheck` (GET loopback `/healthz`), `admin bootstrap --name X` (recusa se já houver
       usuários), `admin invite --user X`, graceful shutdown (SIGINT/SIGTERM → fecha WS, `Shutdown` 15 s), logs JSON `slog`.
       `run()` testável; cobertura 83%. Total do módulo: **85,4%**; `golangci-lint` limpo (`.golangci.yml` ignora só `fmt.Fprint*`).
+- [x] 7. Lint/cobertura ok. Docker: imagem builda; **com o Dockerfile atual o container morre** (ver Bloqueios).
+      Com o patch proposto (validado localmente, sem commitar em `docker/`): `/healthz` → `{"status":"ok"}`,
+      `/relay -healthcheck` exit 0, `/relay admin bootstrap --name Felipe` imprime convite, logs JSON.
 ## Em andamento
-- [ ] 7. `docker compose -f docker/docker-compose.dev.yml up --build` respondendo `/healthz`
+- Nada. Aguardando review/merge do PR `feat/server`.
 ## Bloqueios
-- Nenhum bloqueante. Decisões tomadas (contrato omisso), para validação do orquestrador:
+- **`docker/Dockerfile` (escopo infra):** `distroless:nonroot` + `VOLUME /app/data` sem criar o diretório → volume nasce
+  root e o relay falha com `mkdir /app/data/blobs: permission denied`. Patch verificado (arquivo fora do meu escopo):
+  ```dockerfile
+  # no estágio build, após o go build:
+  RUN mkdir -p /out/data
+  # no estágio final, ANTES de VOLUME /app/data:
+  COPY --from=build --chown=nonroot:nonroot /out/data /app/data
+  ```
+- Sem outros bloqueantes. Decisões tomadas (contrato omisso), para validação do orquestrador:
   - Código de erro extra `conflict` (409) para PUT de chunk após `complete` — não está na lista da §3.
   - `to_device` desconhecido em `POST /v1/envelopes` → `400 validation` (lote inteiro rejeitado).
   - `GET /v1/blobs/{id}` só serve blobs completos e não expirados (senão `404`). Entrega de um recipient é
