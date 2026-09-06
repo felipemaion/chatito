@@ -11,8 +11,12 @@
   safety number) e `FileCipher`/`SodiumFileCipher` (secretstream, chunks de 64 KiB, backpressure, `cipherSize`).
   SHA-256 do safety number via `package:crypto` (o pacote `sodium` não expõe `crypto_hash_sha256`).
 
+- [x] 4. `lib/storage` — drift (`users, devices, conversations, messages, attachments, outbox`; datas como texto
+  ISO para preservar ms) + `KeyStore` (interface, `MapKeyStore` base e `InMemoryKeyStore`). Impl real sobre
+  `flutter_secure_storage` é 3 métodos (`read/write/delete`) estendendo `MapKeyStore` — fica em `platform/`.
+
 ## Em andamento
-- [ ] 4. `lib/storage` (drift + KeyStore).
+- [ ] 5. `lib/transport` (RelayApi, RelayWs, ChunkUploader).
 
 ## Bloqueios
 - **CI (infra):** testes de `crypto` rodam na VM com o pacote `sodium` e precisam de `libsodium` nativo.
