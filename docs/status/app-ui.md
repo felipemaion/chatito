@@ -15,8 +15,13 @@
   progresso de upload/download, Baixar/Abrir (via `platform/files.dart`: `file_picker` + `open_filex`,
   abstraídos em providers p/ teste), Enter envia no desktop, markRead ao abrir e ao receber.
   Testes: `test/ui/chat_test.dart`, `test/ui/onboarding_test.dart`, `test/ui/format_test.dart`.
+- **3c. Contato + Ajustes**: `screens/contact_detail_screen.dart` (aparelhos do contato, safety number
+  60 dígitos + QR via `qr_flutter`, leitura de QR via `platform/qr_scanner.dart` com `mobile_scanner`
+  em Android/macOS, resultado conferem/não conferem, botão Conversar); `screens/settings_screen.dart`
+  (meus aparelhos c/ remoção confirmada, switch de notificações em `ui/settings.dart`, sobre).
+  Testes: `test/ui/contact_detail_test.dart`, `test/ui/settings_test.dart`.
 ## Em andamento
-- 3c. Detalhe do contato (safety number + QR) e Ajustes.
+- 5. Notificações (desktop local; Android FCM wake → `facade.sync()`), bootstrap em `main.dart`.
 ## Bloqueios
 - `docs/status/app-core.md` ainda vazio: `ChatFacade` provisória definida por mim (ver `contracts.dart`,
   doc no topo do arquivo). Resumo: `Watchable<T>` (value + stream) para `session`, `connection`,
