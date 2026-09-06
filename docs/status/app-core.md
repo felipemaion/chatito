@@ -7,15 +7,23 @@
 - [x] 2. `lib/protocol` — modelos + `ConvId`; contract tests round-trip exato contra **todas** as fixtures.
   `.g.dart` commitados (CI não roda `build_runner`).
 - [x] 7. `lib/domain` — interface `ChatFacade`, modelos de domínio e `FakeChatFacade` (memória, determinístico).
+- [x] 3. `lib/crypto` — `CryptoBox`/`SodiumCryptoBox` (passa `crypto_box_vector.json`: ciphertext, open e
+  safety number) e `FileCipher`/`SodiumFileCipher` (secretstream, chunks de 64 KiB, backpressure, `cipherSize`).
+  SHA-256 do safety number via `package:crypto` (o pacote `sodium` não expõe `crypto_hash_sha256`).
 
 ## Em andamento
-- [ ] 3. `lib/crypto` (CryptoBox + FileCipher, vetor de teste).
+- [ ] 4. `lib/storage` (drift + KeyStore).
 
 ## Bloqueios
 - **CI (infra):** testes de `crypto` rodam na VM com o pacote `sodium` e precisam de `libsodium` nativo.
   Localmente: `brew install libsodium`. No `ci-app.yml` (ubuntu) falta `sudo apt-get install -y libsodium23`
   antes de `flutter test`. O helper de teste procura `LIBSODIUM_PATH`, depois caminhos padrão
   (`/opt/homebrew/lib`, `/usr/lib/x86_64-linux-gnu`, `/usr/lib`). Peço ao infra incluir o passo.
+- **`sodium_libs` está descontinuado** (substituído por `sodium` 4.x com native assets, que compila o libsodium
+  por build hook e dispensaria o passo acima no CI). Tentei migrar: o hook exige Xcode completo
+  (`…/Platforms/MacOSX.platform/Developer/SDKs`), e esta máquina só tem Command Line Tools → `configure` falha.
+  Mantive `sodium`/`sodium_libs` 3.4.6. Migrar quando o Mac tiver Xcode (necessário de todo modo para
+  `flutter build macos`): trocar para `sodium: ^4.1.0`, remover `sodium_libs`, e `SodiumInit.init()` sem argumento.
 
 ## Próximo
 - 3 → 4 (storage) → 5 (transport) → 6 (domain real: `RealChatFacade`).
