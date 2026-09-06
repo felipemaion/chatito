@@ -44,6 +44,9 @@ class FakeChatFacade implements ChatFacade {
   final Map<String, ValueStream<List<Message>>> _messages = {};
 
   int syncCalls = 0;
+
+  /// Se definido, o próximo `sendText`/`sendFile` falha com este erro (teste de UI).
+  ChatException? failNextSend;
   String? pushToken;
   int _seq = 0;
 
@@ -86,6 +89,7 @@ class FakeChatFacade implements ChatFacade {
   @override
   Future<void> sendText(String convId, String body) async {
     _requireSession();
+    _maybeFail();
     if (body.trim().isEmpty) {
       throw const ChatException('validation', 'Mensagem vazia');
     }
@@ -117,6 +121,7 @@ class FakeChatFacade implements ChatFacade {
     String? caption,
   }) async {
     _requireSession();
+    _maybeFail();
     final me = _session.value.me!;
     final msgId = _id('msg');
     final blobId = _id('blob');
@@ -234,6 +239,14 @@ class FakeChatFacade implements ChatFacade {
   }
 
   // ---- internos ----
+
+  void _maybeFail() {
+    final e = failNextSend;
+    if (e != null) {
+      failNextSend = null;
+      throw e;
+    }
+  }
 
   void _requireSession() {
     if (!_session.value.isRegistered) {

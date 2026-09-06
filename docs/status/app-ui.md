@@ -8,8 +8,15 @@
 - **2. Tema + layout responsivo**: `ui/theme.dart` (M3, claro/escuro), `ui/layout.dart` (breakpoint 720),
   `ui/app.dart` (pt-BR), `ui/providers.dart` (riverpod), `ui/router.dart` (go_router com redirect p/ onboarding),
   `screens/home_shell.dart` (desktop = lista + chat; celular = pilha), lista de conversas. Testes em `test/ui/app_test.dart`.
+- **3a. Onboarding** (`screens/onboarding_screen.dart`): convite formatado `XXXX-XXXX`, nome do device
+  sugerido pela plataforma (`platform/platform_info.dart`), erros do núcleo exibidos; redirect automático.
+- **3b/4. Chat** (`screens/chat_screen.dart` + `widgets/{message_bubble,attachment_tile,composer,receipt_icon}.dart`):
+  bolhas, nome do remetente em grupo, recibos (relógio/✓/✓✓/✓✓ azul/erro), anexos com preview de imagem,
+  progresso de upload/download, Baixar/Abrir (via `platform/files.dart`: `file_picker` + `open_filex`,
+  abstraídos em providers p/ teste), Enter envia no desktop, markRead ao abrir e ao receber.
+  Testes: `test/ui/chat_test.dart`, `test/ui/onboarding_test.dart`, `test/ui/format_test.dart`.
 ## Em andamento
-- 3. Telas: onboarding, chat, contato (safety number + QR), ajustes.
+- 3c. Detalhe do contato (safety number + QR) e Ajustes.
 ## Bloqueios
 - `docs/status/app-core.md` ainda vazio: `ChatFacade` provisória definida por mim (ver `contracts.dart`,
   doc no topo do arquivo). Resumo: `Watchable<T>` (value + stream) para `session`, `connection`,
