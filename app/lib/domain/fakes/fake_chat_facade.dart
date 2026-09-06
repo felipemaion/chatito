@@ -128,8 +128,9 @@ class FakeChatFacade implements ChatFacade {
         .expand((c) => c.devices)
         .where((d) => d.id == deviceId)
         .firstOrNull;
-    if (other == null)
+    if (other == null) {
       throw const ChatException('not_found', 'device desconhecido');
+    }
     // Determinístico e simétrico; NÃO é a regra real (ver crypto/SodiumCryptoBox).
     final keys = [me.device.identityKey, other.identityKey]..sort();
     final bytes = utf8.encode(keys.join());
@@ -156,8 +157,9 @@ class FakeChatFacade implements ChatFacade {
     final contact = _contacts.value
         .where((c) => c.user.id == userId)
         .firstOrNull;
-    if (contact == null)
+    if (contact == null) {
       throw const ChatException('not_found', 'usuário desconhecido');
+    }
     final id = ConvId.direct(me.user.id, userId);
     final existing = _conversations.value.where((c) => c.id == id).firstOrNull;
     if (existing != null) return existing;
@@ -294,8 +296,9 @@ class FakeChatFacade implements ChatFacade {
 
   Conversation _conversation(String convId) {
     final c = _conversations.value.where((c) => c.id == convId).firstOrNull;
-    if (c == null)
+    if (c == null) {
       throw const ChatException('not_found', 'conversa desconhecida');
+    }
     return c;
   }
 
