@@ -123,7 +123,10 @@ func NormalizeInviteCode(code string) string {
 	return code[:4] + "-" + code[4:]
 }
 
-func fmtTime(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }
+// timeLayout is fixed-width so that textual comparison in SQL sorts correctly.
+const timeLayout = "2006-01-02T15:04:05.000000000Z07:00"
+
+func fmtTime(t time.Time) string { return t.UTC().Format(timeLayout) }
 
 func parseTime(s string) (time.Time, error) {
 	t, err := time.Parse(time.RFC3339Nano, s)
