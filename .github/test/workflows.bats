@@ -84,7 +84,7 @@ BOT="$GH/dependabot.yml"
   grep -q 'shellcheck' "$CI"
   grep -q 'hadolint' "$CI"
   grep -q 'actionlint' "$CI"
-  grep -q 'docker/buildx' "$CI"
+  grep -q 'docker/setup-buildx-action' "$CI"
 }
 
 # ---------- dependabot.yml ----------
