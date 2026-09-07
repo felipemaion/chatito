@@ -51,6 +51,22 @@
   `flutter test` local, mas via container Linux com `dart test`, cobrindo os mesmos arquivos de teste).
 - `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
 
+## RealChatFacade — connect() single-flight (3 RelayWs concorrentes, bug de campo)
+- **Evidência de logcat** (build com prints de diagnóstico): `[chatito.boot] restore: session=true
+  token=true keys=true` seguido de **três** linhas `[chatito.ws] conectando (geração 1)` em 7ms,
+  cada uma com seu próprio backoff (`reagendando em 1140ms/841ms/937ms`) — três `RelayWs`
+  concorrentes brigando entre si (4409), causados pelo autoConnect do boot + gatilhos da UI
+  chamando `connect()` quase ao mesmo tempo.
+- **Causa**: `_ensureWs` checava `_ws == null` e só DEPOIS fazia `await keyStore.readToken()`
+  antes de atribuir `_ws` — qualquer chamada concorrente que chegasse nessa janela via `_ws`
+  ainda nulo e criava o seu próprio `RelayWs`.
+- **Correção**: `_ensureWs` agora é single-flight com `Future<void>? _connecting` — a 1ª chamada
+  cria (`_createWs`); qualquer outra que chegue enquanto isso está em andamento só espera o
+  mesmo future e reusa o `_ws` que ele deixou pronto; `whenComplete` limpa `_connecting`.
+- Teste novo em `test/domain/real_chat_facade_ready_test.dart`: 3 chamadas concorrentes de
+  `connect()` reproduziam 4 conexões reais no relay fake (a 4ª vinha do autoConnect do próprio
+  boot) antes da correção; depois, exatamente 1. 130/130 no total.
+
 ## RealChatFacade — autoConnect no boot (bug de boot no Android)
 - **Relato**: quem chama `connect()` no boot é o observador de conectividade (`connectivity_plus`)
   em `app_services.dart` do app-ui, reagindo a `onOnline` — mas esse callback pode não emitir um
