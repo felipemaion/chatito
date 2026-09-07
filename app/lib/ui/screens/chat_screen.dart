@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/domain.dart';
+import '../../platform/attachment_files.dart';
 import '../../platform/files.dart';
 import '../../platform/platform_info.dart';
-import '../contracts.dart';
+import '../attachment_progress.dart';
 import '../focus.dart';
 import '../providers.dart';
 import '../strings.dart';
@@ -72,26 +76,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           .read(chatFacadeProvider)
           .sendFile(
             widget.convId,
-            picked.path,
             name: picked.name,
-            size: picked.size,
             mime: picked.mime,
+            size: picked.size,
+            data: File(picked.path).openRead(),
           );
     } catch (e) {
       _showError(e);
     }
   }
 
-  Future<void> _download(Message m, Attachment a) async {
+  Future<void> _materialize(Message m, MessageAttachment a) async {
+    final progress = ref.read(downloadProgressProvider.notifier);
+    progress.update(a.blobId, 0);
     try {
-      await ref.read(chatFacadeProvider).downloadAttachment(m.id, a.blobId);
+      final path = await materializeAttachment(
+        blobId: a.blobId,
+        name: a.name,
+        bytes: ref
+            .read(chatFacadeProvider)
+            .readAttachment(messageId: m.id, blobId: a.blobId),
+        onProgress: (received) => progress.update(
+          a.blobId,
+          a.size == 0 ? 1 : (received / a.size).clamp(0, 1),
+        ),
+      );
+      if (!mounted) return;
+      ref.read(attachmentPathsProvider.notifier).set(a.blobId, path);
     } catch (e) {
       _showError(e);
+    } finally {
+      progress.clear(a.blobId);
     }
   }
 
-  Future<void> _open(Attachment a) async {
-    final path = a.localPath;
+  Future<void> _download(Message m, MessageAttachment a) => _materialize(m, a);
+
+  Future<void> _open(Message m, MessageAttachment a) async {
+    final existing = ref.read(attachmentPathsProvider)[a.blobId];
+    final path = existing ?? await _materializeAndReturn(m, a);
     if (path == null) return;
     try {
       await ref.read(fileOpenerProvider).open(path);
@@ -100,12 +123,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  Future<String?> _materializeAndReturn(Message m, MessageAttachment a) async {
+    await _materialize(m, a);
+    return ref.read(attachmentPathsProvider)[a.blobId];
+  }
+
   void _openHeader(Conversation conv) {
-    if (!conv.isGroup && conv.participantIds.isNotEmpty) {
-      context.push('/contact/${conv.participantIds.first}');
+    if (conv.kind == ConversationKind.direct &&
+        conv.participantUserIds.isNotEmpty) {
+      context.push('/contact/${conv.participantUserIds.first}');
       return;
     }
-    final users = ref.read(directoryProvider);
+    final contacts = ref.read(contactsProvider);
     showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -118,15 +147,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            for (final u in users.where(
-              (u) => conv.participantIds.contains(u.id),
+            for (final c in contacts.where(
+              (c) => conv.participantUserIds.contains(c.user.id),
             ))
               ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.person)),
-                title: Text(u.name),
+                title: Text(c.user.name),
                 onTap: () {
                   Navigator.of(ctx).pop();
-                  context.push('/contact/${u.id}');
+                  context.push('/contact/${c.user.id}');
                 },
               ),
           ],
@@ -139,8 +168,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final conv = ref.watch(conversationProvider(widget.convId));
     final messages = ref.watch(messagesProvider(widget.convId));
-    final users = ref.watch(directoryProvider);
+    final contacts = ref.watch(contactsProvider);
     final platform = ref.watch(platformInfoProvider);
+    final progress = ref.watch(downloadProgressProvider);
+    final paths = ref.watch(attachmentPathsProvider);
     ref.listen(messagesProvider(widget.convId), (prev, next) {
       if ((prev?.length ?? 0) < next.length &&
           next.isNotEmpty &&
@@ -148,9 +179,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ref.read(chatFacadeProvider).markRead(widget.convId);
       }
     });
-    String nameOf(String userId) =>
-        users.where((u) => u.id == userId).map((u) => u.name).firstOrNull ??
-        userId;
+    String nameOf(String userId) => contactName(contacts, userId);
 
     return Scaffold(
       key: const Key('chat'),
@@ -167,7 +196,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               CircleAvatar(
                 radius: 16,
                 child: Icon(
-                  conv?.isGroup == true ? Icons.groups : Icons.person,
+                  conv?.kind == ConversationKind.group
+                      ? Icons.groups
+                      : Icons.person,
                   size: 18,
                 ),
               ),
@@ -206,12 +237,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           : null;
                       return MessageBubble(
                         message: m,
-                        senderName: nameOf(m.fromUserId),
+                        senderName: nameOf(m.senderUserId),
                         showSender:
-                            (conv?.isGroup ?? false) &&
-                            prev?.fromUserId != m.fromUserId,
+                            (conv?.kind == ConversationKind.group) &&
+                            prev?.senderUserId != m.senderUserId,
+                        downloadProgressOf: (blobId) => progress[blobId],
+                        localPathOf: (blobId) => paths[blobId],
                         onDownload: (a) => _download(m, a),
-                        onOpen: _open,
+                        onOpen: (a) => _open(m, a),
                       );
                     },
                   ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,7 +39,15 @@ class _AppServicesState extends ConsumerState<AppServices>
     )..start();
     ref
         .read(pushWakerProvider)
-        .init(onWake: facade.sync, onToken: facade.setPushToken);
+        .init(onWake: () => unawaited(facade.connect()), onToken: (_) {});
+    // `sessionProvider` começa em `NotRegistered` até a primeira emissão do
+    // stream chegar (mesmo se já havia sessão persistida) — este listener
+    // cobre tanto isso quanto o registro feito agora pelo onboarding.
+    ref.listenManual(sessionProvider, (prev, next) {
+      if (!(prev?.isRegistered ?? false) && next.isRegistered) {
+        unawaited(facade.connect());
+      }
+    });
   }
 
   @override
@@ -51,7 +61,7 @@ class _AppServicesState extends ConsumerState<AppServices>
     final focus = ref.read(uiFocusProvider);
     focus.isForeground = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.resumed) {
-      ref.read(chatFacadeProvider).sync();
+      unawaited(ref.read(chatFacadeProvider).connect());
     }
   }
 

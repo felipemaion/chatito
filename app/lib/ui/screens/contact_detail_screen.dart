@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/domain.dart';
 import '../../platform/qr_scanner.dart';
-import '../contracts.dart';
+import '../../protocol/protocol.dart' show Device, UserRole;
 import '../providers.dart';
 import '../strings.dart';
 import '../widgets/safety_number_view.dart';
@@ -13,11 +14,22 @@ class ContactDetailScreen extends ConsumerWidget {
   const ContactDetailScreen({super.key, required this.userId});
   final String userId;
 
+  Future<void> _openChat(BuildContext context, WidgetRef ref) async {
+    try {
+      final conv = await ref.read(chatFacadeProvider).openDirect(userId);
+      if (context.mounted) context.go('/c/${Uri.encodeComponent(conv.id)}');
+    } on ChatException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(userProvider(userId));
-    final me = ref.watch(sessionProvider).me;
-    if (user == null) {
+    final contact = ref.watch(contactProvider(userId));
+    final me = ref.watch(registeredProvider);
+    if (contact == null) {
       return Scaffold(
         key: const Key('contact'),
         appBar: AppBar(title: const Text(S.contact)),
@@ -27,7 +39,7 @@ class ContactDetailScreen extends ConsumerWidget {
         ),
       );
     }
-    final convId = me == null ? null : _dmId(me.user.id, user.id);
+    final user = contact.user;
     return Scaffold(
       key: const Key('contact'),
       appBar: AppBar(title: Text(user.name)),
@@ -40,13 +52,14 @@ class ContactDetailScreen extends ConsumerWidget {
               user.name,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            subtitle: Text(user.isAdmin ? 'Administrador' : 'Membro'),
-            trailing: convId == null || user.id == me?.user.id
+            subtitle: Text(
+              user.role == UserRole.admin ? 'Administrador' : 'Membro',
+            ),
+            trailing: me == null || user.id == me.user.id
                 ? null
                 : FilledButton.tonalIcon(
                     key: const Key('open-chat'),
-                    onPressed: () =>
-                        context.go('/c/${Uri.encodeComponent(convId)}'),
+                    onPressed: () => _openChat(context, ref),
                     icon: const Icon(Icons.chat_bubble_outline),
                     label: const Text('Conversar'),
                   ),
@@ -66,22 +79,17 @@ class ContactDetailScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
-          for (final d in user.devices)
+          for (final d in contact.devices)
             _DeviceCard(device: d, isMine: d.id == me?.device.id),
         ],
       ),
     );
   }
-
-  static String _dmId(String a, String b) {
-    final ids = [a, b]..sort();
-    return 'u:${ids[0]}:${ids[1]}';
-  }
 }
 
 class _DeviceCard extends ConsumerStatefulWidget {
   const _DeviceCard({required this.device, required this.isMine});
-  final DeviceInfo device;
+  final Device device;
   final bool isMine;
 
   @override
@@ -89,7 +97,16 @@ class _DeviceCard extends ConsumerStatefulWidget {
 }
 
 class _DeviceCardState extends ConsumerState<_DeviceCard> {
+  late final Future<SafetyNumber>? _safetyNumber;
   bool? _verified;
+
+  @override
+  void initState() {
+    super.initState();
+    _safetyNumber = widget.isMine
+        ? null
+        : ref.read(chatFacadeProvider).safetyNumber(widget.device.id);
+  }
 
   Future<void> _scan(String expected) async {
     final read = await ref.read(qrScannerProvider).scan(context);
@@ -126,8 +143,8 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
             ),
             if (!widget.isMine) ...[
               const SizedBox(height: 12),
-              FutureBuilder<String>(
-                future: ref.read(chatFacadeProvider).safetyNumber(d.id),
+              FutureBuilder<SafetyNumber>(
+                future: _safetyNumber,
                 builder: (context, snap) {
                   final sn = snap.data;
                   if (sn == null) {
@@ -138,7 +155,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                   }
                   return Column(
                     children: [
-                      SafetyNumberView(safetyNumber: sn),
+                      SafetyNumberView(safetyNumber: sn.formatted),
                       const SizedBox(height: 12),
                       if (_verified != null)
                         Chip(
@@ -152,7 +169,7 @@ class _DeviceCardState extends ConsumerState<_DeviceCard> {
                       if (scanner.isSupported)
                         OutlinedButton.icon(
                           key: Key('scan-${d.id}'),
-                          onPressed: () => _scan(sn),
+                          onPressed: () => _scan(sn.formatted),
                           icon: const Icon(Icons.qr_code_scanner),
                           label: const Text(S.scanQr),
                         ),

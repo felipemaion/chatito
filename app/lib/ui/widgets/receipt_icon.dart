@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../contracts.dart';
+import '../../domain/domain.dart';
 
 /// Ícone de status da mensagem enviada (relógio, ✓, ✓✓, ✓✓ azul, erro).
 class ReceiptIcon extends StatelessWidget {
@@ -13,7 +13,7 @@ class ReceiptIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final (icon, c, label) = switch (status) {
-      MessageStatus.sending => (Icons.schedule, color, 'Enviando'),
+      MessageStatus.pending => (Icons.schedule, color, 'Enviando'),
       MessageStatus.sent => (Icons.check, color, 'Enviada'),
       MessageStatus.delivered => (Icons.done_all, color, 'Entregue'),
       MessageStatus.read => (Icons.done_all, scheme.primary, 'Lida'),

@@ -1,46 +1,74 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'contracts.dart';
+import '../domain/domain.dart';
+import '../protocol/protocol.dart' show User;
 
 /// Fachada do núcleo. **Deve** ser sobrescrita no `ProviderScope` raiz.
 final chatFacadeProvider = Provider<ChatFacade>(
   (_) => throw UnimplementedError('chatFacadeProvider não foi sobrescrito'),
 );
 
-/// Liga um [Watchable] a um [Notifier]: estado inicial síncrono + atualizações.
-mixin WatchableBinder<T> on Notifier<T> {
-  T bind(Watchable<T> w) {
-    final sub = w.stream.listen((v) => state = v);
+/// Liga um `Stream<T>` (que emite o valor atual ao ouvir) a um [Notifier],
+/// com [initial] como estado síncrono até a primeira emissão chegar.
+mixin StreamBinder<T> on Notifier<T> {
+  T bind(Stream<T> stream, T initial) {
+    final sub = stream.listen((v) => state = v);
     ref.onDispose(sub.cancel);
-    return w.value;
+    return initial;
   }
 }
 
 class SessionNotifier extends Notifier<SessionState>
-    with WatchableBinder<SessionState> {
+    with StreamBinder<SessionState> {
   @override
-  SessionState build() => bind(ref.watch(chatFacadeProvider).session);
+  SessionState build() =>
+      bind(ref.watch(chatFacadeProvider).watchSession(), const NotRegistered());
 }
 
 final sessionProvider = NotifierProvider<SessionNotifier, SessionState>(
   SessionNotifier.new,
 );
 
-class ConnectionNotifier extends Notifier<RelayState>
-    with WatchableBinder<RelayState> {
-  @override
-  RelayState build() => bind(ref.watch(chatFacadeProvider).connection);
+/// Identidade registrada (null se ainda não registrado).
+final registeredProvider = Provider<Registered?>((ref) {
+  final s = ref.watch(sessionProvider);
+  return s is Registered ? s : null;
+});
+
+extension SessionStateX on SessionState {
+  bool get isRegistered => this is Registered;
 }
 
-final connectionProvider = NotifierProvider<ConnectionNotifier, RelayState>(
-  ConnectionNotifier.new,
+class ConnectionNotifier extends Notifier<ConnectionState>
+    with StreamBinder<ConnectionState> {
+  @override
+  ConnectionState build() => bind(
+    ref.watch(chatFacadeProvider).watchConnection(),
+    ConnectionState.offline,
+  );
+}
+
+final connectionProvider =
+    NotifierProvider<ConnectionNotifier, ConnectionState>(
+      ConnectionNotifier.new,
+    );
+
+class ContactsNotifier extends Notifier<List<Contact>>
+    with StreamBinder<List<Contact>> {
+  @override
+  List<Contact> build() =>
+      bind(ref.watch(chatFacadeProvider).watchContacts(), const []);
+}
+
+final contactsProvider = NotifierProvider<ContactsNotifier, List<Contact>>(
+  ContactsNotifier.new,
 );
 
 class ConversationsNotifier extends Notifier<List<Conversation>>
-    with WatchableBinder<List<Conversation>> {
+    with StreamBinder<List<Conversation>> {
   @override
   List<Conversation> build() =>
-      bind(ref.watch(chatFacadeProvider).conversations);
+      bind(ref.watch(chatFacadeProvider).watchConversations(), const []);
 }
 
 final conversationsProvider =
@@ -48,23 +76,14 @@ final conversationsProvider =
       ConversationsNotifier.new,
     );
 
-class DirectoryNotifier extends Notifier<List<UserInfo>>
-    with WatchableBinder<List<UserInfo>> {
-  @override
-  List<UserInfo> build() => bind(ref.watch(chatFacadeProvider).directory);
-}
-
-final directoryProvider = NotifierProvider<DirectoryNotifier, List<UserInfo>>(
-  DirectoryNotifier.new,
-);
-
 class MessagesNotifier extends Notifier<List<Message>>
-    with WatchableBinder<List<Message>> {
+    with StreamBinder<List<Message>> {
   MessagesNotifier(this.convId);
   final String convId;
 
   @override
-  List<Message> build() => bind(ref.watch(chatFacadeProvider).messages(convId));
+  List<Message> build() =>
+      bind(ref.watch(chatFacadeProvider).watchMessages(convId), const []);
 }
 
 final messagesProvider =
@@ -80,10 +99,23 @@ final conversationProvider = Provider.family<Conversation?, String>((ref, id) {
   return null;
 });
 
-/// Usuário do diretório por id.
-final userProvider = Provider.family<UserInfo?, String>((ref, id) {
-  for (final u in ref.watch(directoryProvider)) {
-    if (u.id == id) return u;
+/// Contato (usuário + devices) por id de usuário.
+final contactProvider = Provider.family<Contact?, String>((ref, userId) {
+  for (final c in ref.watch(contactsProvider)) {
+    if (c.user.id == userId) return c;
   }
   return null;
 });
+
+/// Nome de exibição de um usuário pelo id (fallback: o próprio id).
+String contactName(List<Contact> contacts, String userId) =>
+    contacts
+        .where((c) => c.user.id == userId)
+        .map((c) => c.user.name)
+        .firstOrNull ??
+    userId;
+
+/// Todos os usuários visíveis (para telas que precisam de `User` cru).
+final usersProvider = Provider<List<User>>(
+  (ref) => [for (final c in ref.watch(contactsProvider)) c.user],
+);

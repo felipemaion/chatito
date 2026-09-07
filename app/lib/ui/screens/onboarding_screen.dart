@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/domain.dart';
 import '../../platform/platform_info.dart';
-import '../contracts.dart';
+import '../../platform/server_config.dart';
 import '../providers.dart';
 import '../strings.dart';
 
@@ -18,6 +19,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _form = GlobalKey<FormState>();
   final _invite = TextEditingController();
   late final TextEditingController _device;
+  late final TextEditingController _server;
   bool _busy = false;
   String? _error;
 
@@ -27,12 +29,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _device = TextEditingController(
       text: ref.read(platformInfoProvider).defaultDeviceName,
     );
+    _server = TextEditingController(text: ref.read(serverUrlProvider));
   }
 
   @override
   void dispose() {
     _invite.dispose();
     _device.dispose();
+    _server.dispose();
     super.dispose();
   }
 
@@ -40,6 +44,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _error = null);
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
+    ref.read(serverUrlProvider.notifier).set(_server.text.trim());
     try {
       await ref
           .read(chatFacadeProvider)
@@ -114,6 +119,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     decoration: const InputDecoration(
                       labelText: S.deviceName,
                       prefixIcon: Icon(Icons.devices_outlined),
+                    ),
+                    validator: (v) =>
+                        (v ?? '').trim().isEmpty ? S.required : null,
+                    onFieldSubmitted: (_) => _submit(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    key: const Key('server-url'),
+                    controller: _server,
+                    enabled: !_busy,
+                    decoration: const InputDecoration(
+                      labelText: S.serverUrl,
+                      prefixIcon: Icon(Icons.dns_outlined),
                     ),
                     validator: (v) =>
                         (v ?? '').trim().isEmpty ? S.required : null,

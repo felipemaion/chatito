@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../contracts.dart';
+import '../../domain/domain.dart';
 import '../format.dart';
 import '../strings.dart';
 import 'attachment_tile.dart';
@@ -12,14 +12,18 @@ class MessageBubble extends StatelessWidget {
     required this.message,
     required this.senderName,
     required this.showSender,
+    required this.downloadProgressOf,
+    required this.localPathOf,
     required this.onDownload,
     required this.onOpen,
   });
   final Message message;
   final String senderName;
   final bool showSender;
-  final void Function(Attachment) onDownload;
-  final void Function(Attachment) onOpen;
+  final double? Function(String blobId) downloadProgressOf;
+  final String? Function(String blobId) localPathOf;
+  final void Function(MessageAttachment) onDownload;
+  final void Function(MessageAttachment) onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +85,8 @@ class MessageBubble extends StatelessWidget {
                   child: AttachmentTile(
                     attachment: a,
                     onSurface: fg,
+                    localPath: localPathOf(a.blobId),
+                    downloadProgress: downloadProgressOf(a.blobId),
                     onDownload: () => onDownload(a),
                     onOpen: () => onOpen(a),
                   ),

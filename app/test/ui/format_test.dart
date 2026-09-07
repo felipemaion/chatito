@@ -1,4 +1,4 @@
-import 'package:chatito/ui/contracts.dart';
+import 'package:chatito/domain/domain.dart';
 import 'package:chatito/ui/format.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -20,20 +20,23 @@ void main() {
   });
 
   test('previewOf', () {
-    Message m(MessageKind k, {String? body, List<Attachment> att = const []}) =>
-        Message(
-          id: '1',
-          convId: 'c',
-          fromUserId: 'u',
-          fromDeviceId: 'd',
-          kind: k,
-          sentAt: DateTime.utc(2026),
-          isMine: false,
-          body: body,
-          attachments: att,
-        );
+    Message m(
+      MessageKind k, {
+      String? body,
+      List<MessageAttachment> att = const [],
+    }) => Message(
+      id: '1',
+      convId: 'c',
+      senderUserId: 'u',
+      senderDeviceId: 'd',
+      kind: k,
+      sentAt: DateTime.utc(2026),
+      isMine: false,
+      body: body,
+      attachments: att,
+    );
     expect(previewOf(m(MessageKind.text, body: 'oi')), 'oi');
-    const a = Attachment(
+    const a = MessageAttachment(
       blobId: 'b',
       name: 'praia.jpg',
       size: 1,
@@ -45,5 +48,22 @@ void main() {
       '📎 legenda',
     );
     expect(previewOf(m(MessageKind.keyChange)), contains('Chave'));
+  });
+
+  test('MessageAttachmentX.isImage', () {
+    const img = MessageAttachment(
+      blobId: 'b',
+      name: 'a.png',
+      size: 1,
+      mime: 'image/png',
+    );
+    const doc = MessageAttachment(
+      blobId: 'b',
+      name: 'a.pdf',
+      size: 1,
+      mime: 'application/pdf',
+    );
+    expect(img.isImage, isTrue);
+    expect(doc.isImage, isFalse);
   });
 }

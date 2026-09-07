@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../contracts.dart';
+import '../../domain/domain.dart';
 import '../format.dart';
 import '../providers.dart';
 import '../strings.dart';
@@ -63,7 +63,9 @@ class _ConversationTile extends StatelessWidget {
         key: Key('conv-${conv.id}'),
         selected: selected,
         leading: CircleAvatar(
-          child: Icon(conv.isGroup ? Icons.groups : Icons.person),
+          child: Icon(
+            conv.kind == ConversationKind.group ? Icons.groups : Icons.person,
+          ),
         ),
         title: Text(conv.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(preview, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -71,11 +73,10 @@ class _ConversationTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            if (conv.updatedAt != null)
-              Text(
-                formatTime(conv.updatedAt!),
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
+            Text(
+              formatTime(conv.updatedAt),
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
             if (conv.unreadCount > 0)
               Badge(
                 key: Key('unread-${conv.id}'),

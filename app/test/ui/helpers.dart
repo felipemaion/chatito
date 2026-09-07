@@ -1,6 +1,6 @@
+import 'package:chatito/domain/domain.dart';
+import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/ui/app.dart';
-import 'package:chatito/ui/contracts.dart';
-import 'package:chatito/ui/fake/fake_chat_facade.dart';
 import 'package:chatito/ui/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +18,7 @@ Future<FakeChatFacade> pumpApp(
   String? initialLocation,
   List<Override> overrides = const [],
 }) async {
-  final f = facade ?? FakeChatFacade.seeded();
+  final f = facade ?? FakeChatFacade(autoReplyDelay: Duration.zero);
   await tester.binding.setSurfaceSize(size);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -54,7 +54,9 @@ Future<void> pumpScreen(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        chatFacadeProvider.overrideWithValue(facade ?? FakeChatFacade.seeded()),
+        chatFacadeProvider.overrideWithValue(
+          facade ?? FakeChatFacade(autoReplyDelay: Duration.zero),
+        ),
         ...overrides,
       ],
       child: MaterialApp(

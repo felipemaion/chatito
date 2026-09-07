@@ -1,5 +1,5 @@
+import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/platform/qr_scanner.dart';
-import 'package:chatito/ui/fake/fake_chat_facade.dart';
 import 'package:chatito/ui/screens/contact_detail_screen.dart';
 import 'package:chatito/ui/strings.dart';
 import 'package:flutter/material.dart';
@@ -17,45 +17,53 @@ class _FakeScanner implements QrScannerService {
   Future<String?> scan(BuildContext context) async => result;
 }
 
+FakeChatFacade _seeded() => FakeChatFacade(autoReplyDelay: Duration.zero);
+
 void main() {
   testWidgets('mostra nome, aparelhos e safety number com QR', (tester) async {
-    final f = FakeChatFacade.seeded();
+    final f = _seeded();
     await pumpScreen(
       tester,
-      const ContactDetailScreen(userId: FakeChatFacade.userMae),
+      const ContactDetailScreen(userId: FakeChatFacade.maeId),
       facade: f,
     );
     expect(find.text('Mãe'), findsWidgets);
     expect(find.text('Galaxy'), findsOneWidget);
-    final sn = await f.safetyNumber('dev_mae');
-    expect(find.text(sn), findsOneWidget);
+    final sn = await f.safetyNumber(FakeChatFacade.maeDeviceId);
+    expect(find.text(sn.formatted), findsOneWidget);
     expect(find.byType(QrImageView), findsOneWidget);
   });
 
   testWidgets('QR lido igual → conferem; diferente → não conferem', (
     tester,
   ) async {
-    final f = FakeChatFacade.seeded();
-    final sn = await f.safetyNumber('dev_mae');
+    final f = _seeded();
+    final sn = await f.safetyNumber(FakeChatFacade.maeDeviceId);
     await pumpScreen(
       tester,
-      const ContactDetailScreen(userId: FakeChatFacade.userMae),
+      const ContactDetailScreen(userId: FakeChatFacade.maeId),
       facade: f,
-      overrides: [qrScannerProvider.overrideWithValue(_FakeScanner(sn))],
+      overrides: [
+        qrScannerProvider.overrideWithValue(_FakeScanner(sn.formatted)),
+      ],
     );
-    await tester.tap(find.byKey(const Key('scan-dev_mae')));
+    await tester.tap(
+      find.byKey(const Key('scan-${FakeChatFacade.maeDeviceId}')),
+    );
     await tester.pumpAndSettle();
     expect(find.text(S.verified), findsOneWidget);
 
     await pumpScreen(
       tester,
-      const ContactDetailScreen(userId: FakeChatFacade.userMae),
+      const ContactDetailScreen(userId: FakeChatFacade.maeId),
       facade: f,
       overrides: [
         qrScannerProvider.overrideWithValue(_FakeScanner('00000 11111')),
       ],
     );
-    await tester.tap(find.byKey(const Key('scan-dev_mae')));
+    await tester.tap(
+      find.byKey(const Key('scan-${FakeChatFacade.maeDeviceId}')),
+    );
     await tester.pumpAndSettle();
     expect(find.text(S.notVerified), findsOneWidget);
   });
@@ -64,12 +72,15 @@ void main() {
     await pumpApp(
       tester,
       size: phoneSize,
-      initialLocation: '/contact/${FakeChatFacade.userMae}',
+      initialLocation: '/contact/${FakeChatFacade.maeId}',
     );
     await tester.tap(find.byKey(const Key('open-chat')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('chat')), findsOneWidget);
-    expect(find.text('Me liga quando puder'), findsOneWidget);
+    expect(
+      find.text('Cheguei sim, filho. Foto da praia depois!'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('usuário desconhecido mostra aviso', (tester) async {

@@ -1,6 +1,6 @@
 import 'package:intl/intl.dart';
 
-import 'contracts.dart';
+import '../domain/domain.dart';
 
 /// Hora se for hoje, senão dia/mês (local do aparelho).
 String formatTime(DateTime utc, {DateTime? now}) {
@@ -41,4 +41,9 @@ String previewOf(Message m) {
     case MessageKind.keyChange:
       return '🔑 Chave de segurança alterada';
   }
+}
+
+/// `image/*` — usado para decidir se mostra preview de imagem.
+extension MessageAttachmentX on MessageAttachment {
+  bool get isImage => mime.startsWith('image/');
 }

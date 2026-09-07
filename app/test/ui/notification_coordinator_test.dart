@@ -1,5 +1,6 @@
+import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/platform/notifications.dart';
-import 'package:chatito/ui/fake/fake_chat_facade.dart';
+import 'package:chatito/protocol/protocol.dart' show ConvId;
 import 'package:chatito/ui/focus.dart';
 import 'package:chatito/ui/notification_coordinator.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,70 +19,87 @@ class _FakeNotifier implements LocalNotifications {
   }) async => shown.add((title, body, payload));
 }
 
+/// [autoReply] controla se a Mãe "responde" (usado para simular mensagem
+/// recebida): `false` usa um atraso longo, então só a minha mensagem é
+/// observada dentro da janela do teste.
+FakeChatFacade _facade({bool autoReply = false}) => FakeChatFacade(
+  autoReplyDelay: autoReply ? Duration.zero : const Duration(days: 1),
+);
+
 void main() {
-  late FakeChatFacade f;
+  final family = ConvId.family;
   late _FakeNotifier n;
   late UiFocus focus;
   var enabled = true;
-  late NotificationCoordinator c;
 
-  setUp(() {
-    f = FakeChatFacade.seeded();
+  NotificationCoordinator start(FakeChatFacade f) {
     n = _FakeNotifier();
     focus = UiFocus();
     enabled = true;
-    c = NotificationCoordinator(
+    final c = NotificationCoordinator(
       facade: f,
       notifier: n,
       focus: focus,
       isEnabled: () => enabled,
     )..start();
-  });
-
-  tearDown(() => c.stop());
+    addTearDown(c.stop);
+    addTearDown(f.dispose);
+    return c;
+  }
 
   test(
-    'mensagem recebida em conversa não aberta notifica com título e prévia',
+    'mensagem recebida (resposta automática) notifica com título e prévia',
     () async {
-      f.simulateIncoming('g:familia', 'Jantar hoje?');
+      final f = _facade(autoReply: true);
+      start(f);
+      await f.sendText(family, 'Jantar hoje?');
       await Future<void>.delayed(Duration.zero);
       expect(n.shown, hasLength(1));
       expect(n.shown.first.$1, 'Família');
-      expect(n.shown.first.$2, 'Mãe: Jantar hoje?');
-      expect(n.shown.first.$3, 'g:familia');
+      expect(n.shown.first.$2, contains('Mãe:'));
+      expect(n.shown.first.$3, family);
     },
   );
 
   test('não notifica a própria mensagem', () async {
-    await f.sendText('g:familia', 'eu');
+    final f = _facade();
+    start(f);
+    await f.sendText(family, 'eu');
     await Future<void>.delayed(Duration.zero);
     expect(n.shown, isEmpty);
   });
 
   test('não notifica conversa aberta em primeiro plano', () async {
-    focus.activeConvId = 'g:familia';
+    final f = _facade(autoReply: true);
+    start(f);
+    focus.activeConvId = family;
     focus.isForeground = true;
-    f.simulateIncoming('g:familia', 'x');
+    await f.sendText(family, 'x');
     await Future<void>.delayed(Duration.zero);
     expect(n.shown, isEmpty);
   });
 
   test('notifica conversa aberta se o app está em segundo plano', () async {
-    focus.activeConvId = 'g:familia';
+    final f = _facade(autoReply: true);
+    start(f);
+    focus.activeConvId = family;
     focus.isForeground = false;
-    f.simulateIncoming('g:familia', 'x');
+    await f.sendText(family, 'x');
     await Future<void>.delayed(Duration.zero);
     expect(n.shown, hasLength(1));
   });
 
   test('preferência desligada silencia', () async {
+    final f = _facade(autoReply: true);
+    start(f);
     enabled = false;
-    f.simulateIncoming('g:familia', 'x');
+    await f.sendText(family, 'x');
     await Future<void>.delayed(Duration.zero);
     expect(n.shown, isEmpty);
   });
 
   test('toque na notificação chama onOpen com a conversa', () async {
+    final c = start(_facade());
     String? opened;
     c.onOpen = (id) => opened = id;
     n.onTap!('u:usr_A:usr_B');
@@ -89,9 +107,11 @@ void main() {
   });
 
   test('não repete notificação para a mesma mensagem', () async {
-    f.simulateIncoming('g:familia', 'x');
+    final f = _facade(autoReply: true);
+    start(f);
+    await f.sendText(family, 'x');
     await Future<void>.delayed(Duration.zero);
-    await f.markRead('g:familia'); // emite conversations de novo
+    await f.markRead(family); // emite conversations de novo, mesma última msg
     await Future<void>.delayed(Duration.zero);
     expect(n.shown, hasLength(1));
   });

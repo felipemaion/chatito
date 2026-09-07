@@ -1,4 +1,4 @@
-import 'package:chatito/ui/fake/fake_chat_facade.dart';
+import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/ui/layout.dart';
 import 'package:chatito/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +41,7 @@ void main() {
 
   group('app', () {
     testWidgets('sem registro vai para onboarding', (tester) async {
-      await pumpApp(tester, facade: FakeChatFacade());
+      await pumpApp(tester, facade: FakeChatFacade(startRegistered: false));
       expect(find.byKey(const Key('onboarding')), findsOneWidget);
     });
 

@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../contracts.dart';
+import '../../domain/domain.dart';
 import '../providers.dart';
 import '../strings.dart';
 
@@ -12,7 +12,7 @@ class ConnectionBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(connectionProvider);
-    if (state == RelayState.online) return const SizedBox.shrink();
+    if (state == ConnectionState.online) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     return Material(
       key: const Key('connection-banner'),
@@ -24,7 +24,7 @@ class ConnectionBanner extends ConsumerWidget {
             Icon(Icons.cloud_off, size: 16, color: scheme.onErrorContainer),
             const SizedBox(width: 8),
             Text(
-              state == RelayState.offline ? S.offline : S.connecting,
+              state == ConnectionState.offline ? S.offline : S.connecting,
               style: TextStyle(color: scheme.onErrorContainer),
             ),
           ],

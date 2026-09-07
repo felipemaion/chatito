@@ -10,6 +10,7 @@ abstract final class S {
       'Digite o código de convite recebido do administrador e dê um nome a este aparelho.';
   static const inviteCode = 'Código de convite';
   static const deviceName = 'Nome deste aparelho';
+  static const serverUrl = 'Servidor';
   static const register = 'Entrar';
   static const registering = 'Registrando…';
   static const required = 'Obrigatório';

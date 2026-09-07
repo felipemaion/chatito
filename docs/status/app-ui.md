@@ -31,103 +31,64 @@
   `dart format --set-exit-if-changed` limpos. Cobertura total 83% (UI/plataforma incluídas); os wrappers
   de plugin (`platform/{notifications,push,files,qr_scanner,window}.dart`) ficam fora do gate do CI.
   Golden tests não feitos (opcional).
+- **7. Unificação com a `ChatFacade` real do app-core** (`git merge origin/main`, app-core #4 em `608c291`):
+  apaguei `lib/ui/contracts.dart` e `lib/ui/fake/fake_chat_facade.dart`; toda a UI e os testes passaram a
+  depender de `package:chatito/domain/domain.dart` (+ `protocol/protocol.dart` para `User`/`Device`/`UserRole`)
+  e da `FakeChatFacade` do app-core (`domain/fakes/fake_chat_facade.dart`). `lib/ui/providers.dart` reescrito
+  como `Notifier` que assina os `watch*()` reais (streams emitem o valor atual ao ouvir; estado inicial
+  síncrono é o "vazio" — `NotRegistered`, `offline`, listas vazias — até a primeira emissão chegar).
+  Telas ajustadas para os tipos reais (`SessionState` sealed, `ConversationKind`, `senderUserId`,
+  `MessageAttachment.downloaded`, `SafetyNumber.formatted`, `openDirect`). `contact_detail_screen.dart`:
+  a `Future<SafetyNumber>` agora é cacheada em `initState` (antes recriava a cada rebuild do `FutureBuilder`,
+  perdendo o estado de verificação do QR a cada `setState`).
+  **Progresso de anexo** (não modelado na interface real — `sendFile`/`readAttachment` são `Future`/`Stream`
+  opacos): resolvido com `lib/ui/attachment_progress.dart` (fração de download por `blobId`, contando bytes
+  do `Stream<List<int>>`) + `lib/platform/attachment_files.dart` (materializa o anexo decifrado em
+  `Directory.systemTemp/chatito/`, sem depender de `path_provider`); upload não tem progresso incremental
+  (o `Future` só resolve com o envio completo), então o composer só mostra "enviando" indeterminado.
+  **`removeDevice`/`setPushToken` sem equivalente na fachada real**: removida a ação de remover aparelho
+  de Ajustes (só mostra a lista); `push.dart` não repassa mais o token FCM ao núcleo.
+  **Wiring de plataforma real** (`platform/`): `secure_key_store.dart` (`KeyStore` sobre
+  `flutter_secure_storage`), `real_chat_facade_provider.dart` (`RealChatFacade` com `SodiumCryptoBox`/
+  `SodiumFileCipher` via `SodiumInit.init()`, `ChatDatabase(driftDatabase(name: 'chatito'))`), `server_config.dart`
+  (`serverUrlProvider`, padrão `http://127.0.0.1:8080` desktop / `http://10.0.2.2:8080` Android). `main.dart`
+  monta essas dependências no boot e liga `chatFacadeProvider` à fachada real (nada de fake em produção).
+  Onboarding ganhou o campo **Servidor**, editável, que reconstrói a fachada (via `serverUrlProvider`) antes
+  de registrar — depois do registro o servidor fica fixo na sessão persistida (`StoredSession.baseUrl`).
+  `app_services.dart` conecta o WS (`facade.connect()`) quando a sessão vira `Registered` (seja por já ter
+  sessão persistida, seja por onboarding agora) e ao voltar ao primeiro plano.
 ## Em andamento
-- (nada) — PR aberto, aguardando review/merge.
+- (nada) — aguardando push e CI do PR #3.
 ## Bloqueios
-- **Android não compila sem 1 ajuste fora do meu escopo** (`app/android/app/build.gradle.kts`):
-  `flutter_local_notifications` exige core library desugaring. Patch (validado localmente com
-  `flutter build apk --debug`, ver "Verificações" abaixo):
-  ```kotlin
-  android { compileOptions { /* … */ isCoreLibraryDesugaringEnabled = true } }
-  dependencies { coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4") }
-  ```
-  Não apliquei porque `app/android/**` não está no escopo do app-ui. O CI de PR só builda desktop.
-- **macOS não pôde ser buildado nesta máquina** (sem Xcode completo/CocoaPods; só command-line tools).
-  O job `build-desktop` do CI (macos-latest/windows-latest) é a verificação. Riscos conhecidos:
-  `mobile_scanner` no macOS precisa de entitlement de câmera (`com.apple.security.device.camera`)
-  e `NSCameraUsageDescription` no `Info.plist` — só relevante quando o QR scanner for usado no Mac.
-- **Push em background**: o handler de background do FCM roda em isolate separado, sem acesso à fachada;
-  a sincronização acontece ao voltar ao primeiro plano (`AppServices`) ou por `onMessage` em foreground.
-  Para sync headless, o app-core precisa expor uma inicialização sem UI (proposta p/ Fase 2).
-- **Preferência de notificações** é em memória (`InMemorySettingsStore`); o storage do app-core pode
-  fornecer implementação durável via override de `settingsStoreProvider`.
-- `main.dart` roda com `FakeChatFacade.seeded(autoReply: true)` até o app-core expor a fachada real
-  (trocar 1 linha no `ProviderScope`).
-- `docs/status/app-core.md` ainda vazio: `ChatFacade` provisória definida por mim (ver `contracts.dart`,
-  doc no topo do arquivo). Resumo: `Watchable<T>` (value + stream) para `session`, `connection`,
-  `conversations`, `directory`, `messages(convId)`; métodos `register`, `sendText`, `sendFile`,
-  `downloadAttachment`, `markRead`, `safetyNumber(deviceId)`, `removeDevice`, `setPushToken`, `sync`.
-  Progresso de anexo vai dentro de `Message.attachments[].transfer`. Orquestrador unifica no merge.
-## Plano de unificação (ChatFacade real do app-core, ainda não codado)
-
-Fonte: `origin/feat/app-core` — `docs/status/app-core.md` + `app/lib/domain/{chat_facade,models}.dart`.
-Interface real é Dart puro (`domain/domain.dart`), com `FakeChatFacade` própria do app-core
-(`domain/fakes/fake_chat_facade.dart`). Ao mesclar, uso essa em vez da minha.
-
-### Diferenças de forma (afetam tudo)
-- **`Watchable<T>` (meu) → `Future<T> get` + `Stream<T> watch*()` (real)**. Não existe leitura síncrona
-  de valor atual; a stream real "emite o valor atual imediatamente ao ouvir" — então todo provider vira
-  `StreamProvider`/`StreamNotifier` em vez do meu `Notifier` com `bind()` síncrono.
-- **`SessionState` vira sealed class** `NotRegistered | Registered(user, device)` em vez do meu
-  `SessionState({me})` com `isRegistered`/`me` nullable. `me.user`/`me.device` → `registered.user`/`.device`.
-- **`ConnectionState` já existe com esse nome exato** (`offline|connecting|online`) — não preciso mais do
-  meu apelido `RelayState` (renomeei por colisão com `flutter/async.dart`); ao unificar, ou volto a usar
-  o import escondido (`show ConnectionState`) ou mantenho o prefixo — decidir na hora, é find&replace.
-- **`Conversation.kind: ConversationKind.direct|group`** em vez do meu `isGroup: bool`.
-- **`Message.senderUserId`/`senderDeviceId`** em vez de `fromUserId`/`fromDeviceId`.
-- **`Attachment` → `MessageAttachment`**, sem `localPath` nem `transfer` (progresso). Tem só `downloaded: bool`.
-  **Progresso de upload/download não existe na interface real.** `sendFile`/`readAttachment` são
-  `Future`/`Stream<List<int>>` opacos — preciso inferir estado (`uploading` enquanto o Future não resolve,
-  `downloading` enquanto a Stream não fecha) e não tenho mais `%` a menos que eu conte bytes eu mesmo.
-- **Sem `DeviceInfo` avulso**: devices vêm dentro de `User.devices` (protocolo) e de `Contact.devices`
-  (domínio) — meu `DeviceInfo{id,userId,name,platform,identityKey,createdAt}` vira `protocol.Device`
-  (mesmos campos, mas `userId` é nullable e pode faltar dentro de `directory`).
-- **`UserInfo` → `Contact{user: protocol.User, devices: List<Device>}`**; `role` é enum `UserRole.admin|member`,
-  não string — perco meu `UserInfo.isAdmin` getter, viro `contact.user.role == UserRole.admin`.
-- **`safetyNumber` devolve `SafetyNumber{digits, formatted}`**, não `String` pronta — troco
-  `f.safetyNumber(id)` por `(await f.safetyNumber(id)).formatted` nos usos de exibição.
-- **`markRead` fecha (`Future<void>`)** igual; **`sync()` não existe** — vira `connect()`/`disconnect()`
-  (WS + drena outbox) — meu `push wake → facade.sync()` vira `push wake → facade.connect()`.
-- **`removeDevice` e `setPushToken` não existem na interface real** — ficam sem equivalente por ora
-  (fora do escopo do app-core v1). Preciso remover a ação "remover aparelho" da tela de Ajustes ou
-  deixá-la desabilitada com aviso, e não chamar mais `setPushToken` no `platform/push.dart`.
-- **`register` não devolve `Identity`** (é `Future<void>`); depois de chamar, releio `session`/`watchSession()`
-  para pegar o `Registered`. A tela de onboarding não usa mais o retorno para navegar — só aguarda sem erro
-  e deixa o router redirecionar pela mudança de `SessionState`.
-- **`openDirect(userId)`** é novo: hoje eu calculo `conv_id` 1:1 na mão (`_dmId` em
-  `contact_detail_screen.dart`, ordenando os dois ids). Trocar pela chamada real (o núcleo sabe a regra
-  `u:...` do protocolo) e apagar `_dmId`.
-- **`dispose()`** é novo — chamar ao encerrar o app (não tenho hoje).
-- **`ChatException` é quase igual** (`code`, `message`) — dá para reusar a lógica de exibição como está.
-
-### Arquivo a arquivo
-
-| Arquivo | O que muda |
-| --- | --- |
-| `lib/ui/contracts.dart` | **Apagar inteiro.** `Watchable`/`ValueStream`/`ChatFacade`/`ChatException`/modelos ficam substituídos por `package:chatito/domain/domain.dart` + `package:chatito/protocol/protocol.dart` (para `User`/`Device`/`UserRole`). |
-| `lib/ui/fake/fake_chat_facade.dart` | **Apagar.** Usar `FakeChatFacade` do app-core (`domain/fakes/fake_chat_facade.dart`) — já tem `g:familia` + 1:1 com a Mãe, autoReply configurável, `badInvite` para testar erro. Ajustar `main.dart` e `test/ui/helpers.dart` para importar de lá. |
-| `lib/ui/providers.dart` | Reescrever todos os `Notifier`+`WatchableBinder` como `StreamNotifier`/`StreamProvider` sobre os `watch*()` reais. `sessionProvider` passa a expor `SessionState` sealed (pattern match `switch`); adicionar getter de conveniência (extension `isRegistered`/`me` se eu quiser manter a ergonomia nas telas sem reescrever tudo). |
-| `lib/ui/format.dart` | `previewOf`: trocar `m.kind`/`m.attachments` pelos nomes reais (`MessageKind` já bate; `attachments.first.name` já bate). Nenhuma mudança de lógica, só tipos. |
-| `lib/ui/screens/onboarding_screen.dart` | `register()` não devolve mais `Identity`; remover uso do retorno, manter só `try/on ChatException`. |
-| `lib/ui/screens/conversations_screen.dart` | `conv.isGroup` → `conv.kind == ConversationKind.group`. |
-| `lib/ui/screens/chat_screen.dart` | `m.fromUserId`→`senderUserId` etc. `sendFile`: preciso abrir o arquivo local como `Stream<List<int>>` (ex. `File(path).openRead()`) e passar `size` do `PickedFile`. `downloadAttachment` some — vira `readAttachment(messageId, blobId)` retornando bytes; preciso decidir onde gravar em disco (a UI passa a ser dona do cache local, já que `localPath`/`transfer` não existem mais no domínio) — provavelmente um novo `platform/attachment_cache.dart` que grava a stream em `/tmp/chatito/<blobId>` e reporta progresso por contagem de bytes recebidos vs `attachment.size`. Isso também cobre o "progresso" que a interface real não modela. |
-| `lib/ui/screens/contact_detail_screen.dart` | Remover `_dmId`, usar `facade.openDirect(userId)`. `UserInfo`→`Contact`, `isAdmin`→`user.role == UserRole.admin`. `safetyNumber(id).formatted` no lugar da `String` direta. |
-| `lib/ui/screens/settings_screen.dart` | Remover a ação de remover aparelho (sem equivalente) ou marcar como indisponível nesta versão; registrar isso como bloqueio novo se o usuário quiser a função de volta (pedir ao app-core para expor `removeDevice`, que existe no protocolo REST `DELETE /v1/devices/{id}` mas não na fachada). |
-| `lib/platform/push.dart` | `facade.sync()` → `facade.connect()`; remover `facade.setPushToken` (sem equivalente — ou manter local só para lembrar o token, sem repassar ao núcleo, até o app-core expor `PUT /v1/devices/me/push` na fachada). |
-| `lib/ui/widgets/attachment_tile.dart`, `message_bubble.dart` | Passam a receber o novo modelo de progresso (do `attachment_cache`, não mais `attachment.transfer`); ajustar props. |
-| Todos os testes em `test/ui/*.dart` e `test/ui/helpers.dart` | Reescrever para a `FakeChatFacade` real e os novos tipos; `pumpApp`/`pumpScreen` trocam o import do fake. Muitos `expect` sobre `isGroup`, `fromUserId`, `attachment.transfer.state`, `safetyNumber` como `String` direta vão quebrar e precisam de ajuste mecânico. |
-
-### Ordem sugerida de execução (quando app-core estiver em `main`)
-1. Apagar `contracts.dart` + fake próprio; trocar imports por `domain/domain.dart` — deixa o projeto
-   vermelho (esperado).
-2. Reescrever `providers.dart` (streams reais) — é a peça que desbloqueia todas as telas.
-3. Corrigir telas uma a uma na ordem dos testes (`format` → `onboarding` → `conversations` → `chat` →
-   `contact_detail` → `settings`), rodando `flutter test test/ui/<tela>_test.dart` a cada uma.
-4. Resolver progresso de anexo via `platform/attachment_cache.dart` novo (com teste próprio antes).
-5. `platform/push.dart`: `sync()`→`connect()`, remover `setPushToken` do fluxo (ou isolar localmente).
-6. `flutter analyze --fatal-infos` + suíte completa + `dart format` antes de commitar.
-7. Registrar em Bloqueios o que ficou sem equivalente (remover aparelho, setPushToken) para o orquestrador
-   decidir se pede ao app-core para estender a fachada.
-
+- **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
+  da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para
+  **todo** o projeto sempre que qualquer pacote com build hook está no grafo de dependências — mesmo que
+  o arquivo de teste não importe nada de crypto —, e o hook do `sodium` 4.x exige Xcode completo
+  (`…/Platforms/MacOSX.platform/…`), que esta máquina não tem (só Command Line Tools). Tentei: rodar
+  arquivo isolado (mesmo erro, falha é no nível do `flutter test`, antes de escolher os arquivos), a flag
+  de processo `FLUTTER_NATIVE_ASSETS=false` (o Flutter recusa: "Package(s) … require the dart assets
+  feature to be enabled"), e um container Docker com Flutter (`ghcr.io/cirruslabs/flutter:stable`, já em
+  cache local) — versão 3.44/Dart 3.12, incompatível com o `sdk: ^3.13.2` do projeto. Não toquei em
+  `flutter config --enable-native-assets` (config global do usuário, compartilhada por outras sessões
+  simultâneas neste mesmo Mac). **Validação real**: `flutter analyze --fatal-infos` limpo localmente;
+  o job `test` do CI roda em `ubuntu-latest`, que não precisa de Xcode (o hook do libsodium só usa
+  autoconf/automake/build-essential, já presentes na imagem) — é o gate efetivo, igual ao que o app-core
+  já usa para os próprios testes de crypto. Sugestão ao orquestrador: instalar Xcode completo nesta máquina
+  para destravar `flutter test`/`flutter build macos` localmente, ou aceitar o CI como gate único no dev local.
+- **`mobile_scanner` no macOS** precisa de entitlement de câmera (`com.apple.security.device.camera`) e
+  `NSCameraUsageDescription` no `Info.plist` — só relevante quando o QR scanner for usado no Mac; não
+  verificado (build macOS local também bloqueado pelo Xcode incompleto).
+- **Android**: desugaring do `flutter_local_notifications` ainda não aplicado em `app/android/app/build.gradle.kts`
+  (fora do meu escopo; patch documentado no histórico deste arquivo, commit anterior).
+- **Preferência de notificações** é em memória (`InMemorySettingsStore`); pode ganhar persistência real
+  via override de `settingsStoreProvider` sobre o `ChatDatabase`/`flutter_secure_storage` já disponíveis.
+- **Push**: token FCM não é mais repassado ao núcleo (sem `setPushToken` na fachada); o handler de
+  background do FCM continua sem acesso à fachada (isolate separado) — sync ocorre ao voltar ao foreground.
+- **Cache de anexos em disco do domínio**: `RealChatFacade` usa `InMemoryAttachmentCache()` por padrão
+  (não pedido explicitamente nesta tarefa); anexos não sobrevivem a reinício do app até o app-core ou o
+  app-ui prover uma implementação em disco de `AttachmentCache`.
+- **Remover aparelho**: sem equivalente na `ChatFacade` (existe `DELETE /v1/devices/{id}` no protocolo REST,
+  mas não exposto pela fachada); ação removida de Ajustes. Pedir ao app-core se for necessário no v1.
 ## Próximo
-- Aguardando app-core em `main` para executar o plano acima. PR #3 ainda aberto/aguardando review.
+- Push da unificação + acompanhar o CI (`test` em ubuntu-latest é o gate real de `flutter test`
+  nesta máquina). PR #3 fica pronto para review/merge assim que o CI ficar verde.

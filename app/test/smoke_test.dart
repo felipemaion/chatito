@@ -1,7 +1,7 @@
+import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/main.dart';
 import 'package:chatito/platform/notifications.dart';
 import 'package:chatito/platform/push.dart';
-import 'package:chatito/ui/fake/fake_chat_facade.dart';
 import 'package:chatito/ui/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +22,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          chatFacadeProvider.overrideWithValue(FakeChatFacade.seeded()),
+          chatFacadeProvider.overrideWithValue(
+            FakeChatFacade(autoReplyDelay: Duration.zero),
+          ),
           pushWakerProvider.overrideWithValue(const NoopPushWaker()),
           localNotificationsProvider.overrideWithValue(_NoopNotifier()),
         ],

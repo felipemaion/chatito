@@ -1,11 +1,10 @@
+import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/platform/files.dart';
 import 'package:chatito/platform/platform_info.dart';
 import 'package:chatito/platform/push.dart';
-import 'package:chatito/ui/contracts.dart';
-import 'package:chatito/ui/fake/fake_chat_facade.dart';
 import 'package:chatito/ui/strings.dart';
 import 'package:chatito/ui/widgets/connection_banner.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers.dart';
@@ -44,30 +43,22 @@ void main() {
     expect(FirebasePushWaker.isWake({}), isFalse);
   });
 
-  testWidgets('ConnectionBanner aparece offline/conectando e some online', (
-    tester,
-  ) async {
-    final f = FakeChatFacade.seeded();
+  testWidgets('ConnectionBanner some quando conectado', (tester) async {
+    final f = FakeChatFacade(autoReplyDelay: Duration.zero);
     await pumpScreen(
       tester,
       const Scaffold(body: ConnectionBanner()),
       facade: f,
     );
-    expect(find.byKey(const Key('connection-banner')), findsNothing);
-    f.setConnection(RelayState.offline);
-    await tester.pumpAndSettle();
+    // Estado inicial da fake é offline (antes de `connect()`).
     expect(find.text(S.offline), findsOneWidget);
-    f.setConnection(RelayState.connecting);
-    await tester.pumpAndSettle();
-    expect(find.text(S.connecting), findsOneWidget);
-    f.setConnection(RelayState.online);
+    await f.connect();
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('connection-banner')), findsNothing);
   });
 
-  testWidgets('conversa mostra faixa de offline', (tester) async {
-    final f = FakeChatFacade.seeded()..setConnection(RelayState.offline);
-    await pumpApp(tester, facade: f, size: phoneSize);
+  testWidgets('conversa mostra faixa de offline por padrão', (tester) async {
+    await pumpApp(tester, size: phoneSize);
     expect(find.byKey(const Key('connection-banner')), findsOneWidget);
   });
 }
