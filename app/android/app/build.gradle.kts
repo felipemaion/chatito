@@ -26,7 +26,7 @@ if (googleServicesFile.exists()) {
 
 android {
     namespace = "br.com.maion.chatito"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37 // flutter_secure_storage exige >= 37 (Flutter 3.47 usa 36 por padrão)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
