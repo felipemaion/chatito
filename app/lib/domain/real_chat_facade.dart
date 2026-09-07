@@ -118,6 +118,10 @@ class RealChatFacade implements ChatFacade {
   /// nunca deixar um [RelayWs] sendo criado depois de já descartada.
   Future<void>? _autoConnectTask;
 
+  /// Single-flight de [_ensureWs]: enquanto não nulo, uma criação do
+  /// [RelayWs] já está em andamento e ninguém mais deve iniciar outra.
+  Future<void>? _connecting;
+
   ActiveSession? _active;
   RelayWs? _ws;
   StreamSubscription<ConnectionState>? _wsStateSub;
@@ -201,9 +205,26 @@ class RealChatFacade implements ChatFacade {
 
   /// Cria o [RelayWs] (com o token do [KeyStore]) na 1ª chamada; devolve o
   /// mesmo depois. Compartilhado por [connect] e [ensureConnected].
-  Future<RelayWs> _ensureWs(ActiveSession s) async {
+  ///
+  /// Single-flight: bug de campo (evidência de logcat) tinha 3 `RelayWs`
+  /// nascendo de chamadas concorrentes (autoConnect + gatilhos da UI) porque
+  /// a checagem `_ws == null` era seguida de um `await` (a leitura do token)
+  /// antes de `_ws` ser atribuído — toda chamada que chegasse nesse meio
+  /// tempo via `_ws` ainda nulo e criava a sua própria. [_connecting] fecha
+  /// essa janela: a 2ª e 3ª chamada só esperam a 1ª terminar de criar.
+  Future<RelayWs> _ensureWs(ActiveSession s) {
     final existing = _ws;
-    if (existing != null) return existing;
+    if (existing != null) return Future.value(existing);
+    final inFlight = _connecting;
+    if (inFlight != null) return inFlight.then((_) => _ws!);
+    final future = _createWs(s);
+    _connecting = future;
+    return future.then((_) => _ws!).whenComplete(() {
+      if (identical(_connecting, future)) _connecting = null;
+    });
+  }
+
+  Future<void> _createWs(ActiveSession s) async {
     final token = await _ctx.keyStore.readToken();
     if (token == null) {
       throw const ChatException('not_registered', 'sem token');
@@ -224,7 +245,6 @@ class RealChatFacade implements ChatFacade {
     });
     _wsErrSub = ws.errors.listen((e) => _log('ws: $e'));
     _ws = ws;
-    return ws;
   }
 
   Future<void> _afterOnline(ActiveSession s) async {
