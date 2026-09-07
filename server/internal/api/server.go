@@ -42,19 +42,26 @@ type Options struct {
 	WS        http.Handler     // optional, mounted at GET /v1/ws behind auth
 	Now       func() time.Time // optional, defaults to time.Now
 	RateLimit func() int       // optional, requests per minute per device (default 60; <=0 disables)
-	Logger    *slog.Logger     // optional
+	// RegisterRateLimit bounds POST /v1/devices attempts per minute per
+	// client IP, to slow down invite-code brute forcing. Optional, default
+	// 10; <=0 disables.
+	RegisterRateLimit func() int
+	Logger            *slog.Logger // optional
 }
 
 // Server holds the HTTP handlers of the relay.
 type Server struct {
-	store    *store.Store
-	notifier Notifier
-	pusher   Pusher
-	ws       http.Handler
-	now      func() time.Time
-	limiter  *rateLimiter
-	log      *slog.Logger
+	store      *store.Store
+	notifier   Notifier
+	pusher     Pusher
+	ws         http.Handler
+	now        func() time.Time
+	limiter    *rateLimiter
+	regLimiter *rateLimiter
+	log        *slog.Logger
 }
+
+const defaultRegisterRateLimit = 10
 
 // Retention constants (docs/PROTOCOL.md §6).
 const (
@@ -77,6 +84,11 @@ func New(opts Options) *Server {
 		limit = opts.RateLimit
 	}
 	s.limiter = newRateLimiter(limit, s.now)
+	regLimit := func() int { return defaultRegisterRateLimit }
+	if opts.RegisterRateLimit != nil {
+		regLimit = opts.RegisterRateLimit
+	}
+	s.regLimiter = newRateLimiter(regLimit, s.now)
 	return s
 }
 
@@ -84,7 +96,7 @@ func New(opts Options) *Server {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", HealthHandler)
-	mux.Handle("POST /v1/devices", s.h(s.register))
+	mux.Handle("POST /v1/devices", s.registerRateLimited(s.h(s.register)))
 
 	auth := func(fn handlerFunc) http.Handler { return s.authenticate(s.h(fn)) }
 	mux.Handle("GET /v1/me", auth(s.me))

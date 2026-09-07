@@ -125,5 +125,10 @@ func (s *Store) DeleteDevice(ctx context.Context, id string) error {
 	for _, b := range owned {
 		s.removeBlobFiles(b)
 	}
+	// The device row's deletion cascaded away its blob_recipients rows too;
+	// a blob some other device owns may now be fully delivered.
+	if _, err := s.DeleteDeliveredBlobs(ctx); err != nil {
+		return err
+	}
 	return nil
 }

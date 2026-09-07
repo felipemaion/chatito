@@ -69,6 +69,26 @@ type conn struct {
 	once     sync.Once
 	code     websocket.StatusCode
 	reason   string
+
+	sentMu sync.Mutex
+	sent   map[string]struct{}
+}
+
+// markSent reports whether envelope id is being sent for the first time on
+// this connection. It guards against the race between the initial pending
+// flush (a direct DB read) and a concurrent Notify call for the same
+// just-inserted envelope, which could otherwise deliver it twice.
+func (c *conn) markSent(id string) bool {
+	c.sentMu.Lock()
+	defer c.sentMu.Unlock()
+	if c.sent == nil {
+		c.sent = map[string]struct{}{}
+	}
+	if _, dup := c.sent[id]; dup {
+		return false
+	}
+	c.sent[id] = struct{}{}
+	return true
 }
 
 // closeWith records the close code and ends the connection once.
@@ -97,6 +117,9 @@ func (h *Hub) Notify(deviceID string, envs []store.Envelope) {
 		return
 	}
 	for _, e := range envs {
+		if !c.markSent(e.ID) {
+			continue
+		}
 		c.enqueue(mustJSON(api.EnvelopeFrame{Type: "envelope", Envelope: api.EnvelopeToDTO(e)}))
 	}
 }
@@ -150,7 +173,10 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	wsc, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true})
+	// Native clients (Flutter desktop/mobile) don't send an Origin header, so
+	// the library's default check (reject only a mismatching Origin) is
+	// enough; skipping it entirely would also accept forged browser origins.
+	wsc, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		h.log.Warn("ws accept failed", "device", d.ID, "err", err)
 		return
@@ -199,6 +225,9 @@ func (h *Hub) sendHelloAndPending(ctx context.Context, c *conn) error {
 		return err
 	}
 	for _, e := range pending {
+		if !c.markSent(e.ID) {
+			continue
+		}
 		if err := c.write(ctx, mustJSON(api.EnvelopeFrame{Type: "envelope", Envelope: api.EnvelopeToDTO(e)})); err != nil {
 			return err
 		}
@@ -230,11 +259,11 @@ func (h *Hub) writeLoop(ctx context.Context, c *conn) {
 		case <-c.pong:
 			missed = 0
 		case <-ticker.C:
+			missed++
 			if missed >= maxMissedPongs {
 				c.closeWith(websocket.StatusGoingAway, "pong timeout")
 				continue
 			}
-			missed++
 			if err := c.write(ctx, mustJSON(api.Frame{Type: "ping"})); err != nil {
 				c.closeWith(websocket.StatusAbnormalClosure, "write failed")
 			}

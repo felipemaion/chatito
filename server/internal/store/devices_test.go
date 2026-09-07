@@ -1,8 +1,10 @@
 package store_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -93,6 +95,39 @@ func TestDevices(t *testing.T) {
 	all, _ = s.ListDevices(ctx)
 	if len(all) != 1 {
 		t.Fatalf("after delete = %v", all)
+	}
+}
+
+// TestDeleteDeviceReevaluatesBlobDelivery guards the fix where deleting a
+// device that was a blob's sole undelivered recipient must now sweep that
+// blob away instead of leaking it until the next hourly janitor run.
+func TestDeleteDeviceReevaluatesBlobDelivery(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	u, _ := s.CreateUser(ctx, "Felipe", store.RoleAdmin)
+	owner, _ := mkDevice(t, s, u.ID, "Mac")
+	recipient, _ := mkDevice(t, s, u.ID, "Phone")
+
+	b := store.Blob{ID: store.NewID("blob_"), OwnerDevice: owner.ID, Size: 3, ChunkSize: 3,
+		CreatedAt: time.Now(), ExpiresAt: time.Now().Add(time.Hour)}
+	if err := s.CreateBlob(ctx, b, []string{recipient.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.WriteChunk(ctx, b.ID, 0, bytes.NewReader([]byte("abc"))); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CompleteBlob(ctx, b.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.DeleteDevice(ctx, recipient.ID); err != nil {
+		t.Fatalf("delete recipient: %v", err)
+	}
+	if _, err := s.GetBlob(ctx, b.ID); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("blob should be gone once its only recipient is deleted: %v", err)
+	}
+	if _, err := os.Stat(s.BlobPath(b.ID)); !os.IsNotExist(err) {
+		t.Fatalf("blob file should be gone: %v", err)
 	}
 }
 

@@ -17,6 +17,16 @@
       `/relay -healthcheck` exit 0, `/relay admin bootstrap --name Felipe` imprime convite, logs JSON.
 ## Em andamento
 - Nada. Aguardando review/merge do PR `feat/server`.
+## Correções da revisão do PR #2 (aplicadas)
+- [x] ws: fecha após 2 intervalos de ping sem pong (~60s, era ~90s/3 pings) — `missed++` antes do check.
+- [x] ws: dedupe por `env_id` entre o flush de pendentes no hello e `Notify` concorrente (evita entrega dupla).
+- [x] store/blobs: `WriteChunk`/`assemble` usam `os.CreateTemp` + rename atômico (nomes fixos podiam colidir).
+- [x] store: `blob_recipients.device_id` agora `ON DELETE CASCADE`; `DeleteDevice` reavalia blobs após o cascade
+      (`DeleteDeliveredBlobs`) em vez de esperar o janitor horário.
+- [x] api: rate limit por IP em `POST /v1/devices` (10/min, configurável via `RegisterRateLimit`) contra brute force de convite.
+- [x] ws: removido `InsecureSkipVerify` do `Accept` — clientes nativos não mandam `Origin`, checagem padrão basta.
+Testes novos cobrindo cada fix; `go test ./... -race` verde, cobertura total 85,4%, `golangci-lint` limpo.
+
 ## Bloqueios
 - **`docker/Dockerfile` (escopo infra):** `distroless:nonroot` + `VOLUME /app/data` sem criar o diretório → volume nasce
   root e o relay falha com `mkdir /app/data/blobs: permission denied`. Patch verificado (arquivo fora do meu escopo):

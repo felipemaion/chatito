@@ -6,11 +6,90 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/felipemaion/chatito/server/internal/store"
 )
+
+// TestWriteChunkConcurrentSameIndexIsSafe guards against a fixed tmp file
+// name in WriteChunk: concurrent uploads of the same chunk must never
+// corrupt each other, only race on which write wins.
+func TestWriteChunkConcurrentSameIndexIsSafe(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	u, _ := s.CreateUser(ctx, "Felipe", store.RoleAdmin)
+	owner, _ := mkDevice(t, s, u.ID, "Mac")
+	r1, _ := mkDevice(t, s, u.ID, "Phone")
+	b := store.Blob{ID: store.NewID("blob_"), OwnerDevice: owner.ID, Size: 4, ChunkSize: 4,
+		CreatedAt: time.Now(), ExpiresAt: time.Now().Add(time.Hour)}
+	if err := s.CreateBlob(ctx, b, []string{r1.ID}); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	errs := make(chan error, 20)
+	for range 20 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := s.WriteChunk(ctx, b.ID, 0, bytes.NewReader([]byte("abcd"))); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatalf("concurrent write chunk: %v", err)
+	}
+	if err := s.CompleteBlob(ctx, b.ID); err != nil {
+		t.Fatalf("complete: %v", err)
+	}
+	data, err := os.ReadFile(s.BlobPath(b.ID))
+	if err != nil || string(data) != "abcd" {
+		t.Fatalf("data = %q, %v", data, err)
+	}
+}
+
+// TestCompleteBlobConcurrentIsSafe guards against a fixed tmp file name in
+// assemble: concurrent (idempotent) completions must never corrupt the
+// assembled file.
+func TestCompleteBlobConcurrentIsSafe(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	u, _ := s.CreateUser(ctx, "Felipe", store.RoleAdmin)
+	owner, _ := mkDevice(t, s, u.ID, "Mac")
+	r1, _ := mkDevice(t, s, u.ID, "Phone")
+	b := store.Blob{ID: store.NewID("blob_"), OwnerDevice: owner.ID, Size: 4, ChunkSize: 4,
+		CreatedAt: time.Now(), ExpiresAt: time.Now().Add(time.Hour)}
+	if err := s.CreateBlob(ctx, b, []string{r1.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.WriteChunk(ctx, b.ID, 0, bytes.NewReader([]byte("abcd"))); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	errs := make(chan error, 10)
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := s.CompleteBlob(ctx, b.ID); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatalf("concurrent complete: %v", err)
+	}
+	data, err := os.ReadFile(s.BlobPath(b.ID))
+	if err != nil || string(data) != "abcd" {
+		t.Fatalf("data = %q, %v", data, err)
+	}
+}
 
 func TestBlobLifecycle(t *testing.T) {
 	s := openTest(t)

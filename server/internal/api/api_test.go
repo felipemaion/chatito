@@ -59,13 +59,14 @@ func (f *fakePusher) sent() []string {
 }
 
 type env struct {
-	t        *testing.T
-	srv      *httptest.Server
-	st       *store.Store
-	notifier *fakeNotifier
-	pusher   *fakePusher
-	now      time.Time
-	rate     int
+	t            *testing.T
+	srv          *httptest.Server
+	st           *store.Store
+	notifier     *fakeNotifier
+	pusher       *fakePusher
+	now          time.Time
+	rate         int
+	registerRate int
 }
 
 func newEnv(t *testing.T) *env {
@@ -76,12 +77,13 @@ func newEnv(t *testing.T) *env {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	e := &env{t: t, st: st, notifier: &fakeNotifier{}, pusher: &fakePusher{},
-		now: time.Date(2026, 9, 6, 18, 0, 0, 0, time.UTC), rate: 1000}
+		now: time.Date(2026, 9, 6, 18, 0, 0, 0, time.UTC), rate: 1000, registerRate: 1000}
 	s := api.New(api.Options{
 		Store: st, Notifier: e.notifier, Pusher: e.pusher,
-		Now:       func() time.Time { return e.now },
-		RateLimit: func() int { return e.rate },
-		Logger:    slog.New(slog.DiscardHandler),
+		Now:               func() time.Time { return e.now },
+		RateLimit:         func() int { return e.rate },
+		RegisterRateLimit: func() int { return e.registerRate },
+		Logger:            slog.New(slog.DiscardHandler),
 	})
 	e.srv = httptest.NewServer(s.Handler())
 	t.Cleanup(e.srv.Close)
@@ -304,6 +306,31 @@ func TestRateLimit(t *testing.T) {
 	e.now = e.now.Add(61 * time.Second)
 	if last = e.do("GET", "/v1/me", token, nil); last.code != 200 {
 		t.Fatalf("after window = %d", last.code)
+	}
+}
+
+// TestRegisterRateLimitByIP guards brute forcing of invite codes: POST
+// /v1/devices is rate limited per client IP even though it needs no token.
+func TestRegisterRateLimitByIP(t *testing.T) {
+	e := newEnv(t)
+	e.registerRate = 3
+	u := e.admin()
+	req := func() api.RegisterRequest {
+		return api.RegisterRequest{InviteCode: e.invite(u.ID), DeviceName: "x", Platform: "macos", IdentityKey: identityKey}
+	}
+	var last resp
+	for range 3 {
+		if last = e.do("POST", "/v1/devices", "", req()); last.code != 201 {
+			t.Fatalf("under limit = %d %s", last.code, last.body)
+		}
+	}
+	last = e.do("POST", "/v1/devices", "", req())
+	if last.code != 429 || last.errCode(t) != "rate_limited" || last.hdr.Get("Retry-After") == "" {
+		t.Fatalf("over limit = %d %s hdr=%v", last.code, last.body, last.hdr)
+	}
+	e.now = e.now.Add(61 * time.Second)
+	if last = e.do("POST", "/v1/devices", "", req()); last.code != 201 {
+		t.Fatalf("after window = %d %s", last.code, last.body)
 	}
 }
 

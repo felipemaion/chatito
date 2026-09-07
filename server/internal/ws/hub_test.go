@@ -263,12 +263,15 @@ func TestPingTimeoutClosesSilentClient(t *testing.T) {
 	_, tok := e.register("B")
 	c := e.dial(tok, false)
 	readFrame(t, c) // hello
-	// Never answer pings: the server must close after two unanswered pings.
+	// Never answer pings: the server must close after 2 ping intervals
+	// elapse without a pong (~60ms here), having sent only 1 ping — not
+	// wait for a 3rd tick.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	pings := 0
 	start := time.Now()
 	for {
-		_, _, err := c.Read(ctx)
+		_, data, err := c.Read(ctx)
 		if err != nil {
 			var ce websocket.CloseError
 			if !errors.As(err, &ce) || ce.Code != websocket.StatusGoingAway {
@@ -276,8 +279,15 @@ func TestPingTimeoutClosesSilentClient(t *testing.T) {
 			}
 			break
 		}
+		var f map[string]any
+		if json.Unmarshal(data, &f) == nil && f["type"] == "ping" {
+			pings++
+		}
 	}
-	if time.Since(start) > 2*time.Second {
+	if pings != 1 {
+		t.Fatalf("pings sent before close = %d, want 1", pings)
+	}
+	if time.Since(start) > 500*time.Millisecond {
 		t.Fatal("close took too long")
 	}
 }

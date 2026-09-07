@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS blob_chunks (
 );
 CREATE TABLE IF NOT EXISTS blob_recipients (
   blob_id   TEXT NOT NULL REFERENCES blobs(id) ON DELETE CASCADE,
-  device_id TEXT NOT NULL,
+  device_id TEXT NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
   delivered INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (blob_id, device_id)
 );

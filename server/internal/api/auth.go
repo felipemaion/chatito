@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -76,6 +77,31 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), ctxDevice, d)
 		ctx = context.WithValue(ctx, ctxUser, u)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// clientIP extracts the caller's address, stripping the port. It trusts
+// RemoteAddr only: the relay sits directly behind Caddy in prod (which sets
+// its own RemoteAddr), so an X-Forwarded-For header would be spoofable by
+// the client and is deliberately not consulted here.
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// registerRateLimited bounds POST /v1/devices attempts per client IP, ahead
+// of any auth, to slow down brute-forcing invite codes.
+func (s *Server) registerRateLimited(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if retry, ok := s.regLimiter.allow(clientIP(r)); !ok {
+			w.Header().Set("Retry-After", strconv.Itoa(retry))
+			writeError(w, http.StatusTooManyRequests, CodeRateLimited, "rate limit exceeded")
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 

@@ -153,11 +153,11 @@ func (s *Store) WriteChunk(ctx context.Context, id string, n int, r io.Reader) (
 		return 0, fmt.Errorf("store: chunk %d of %d: %w", n, b.ChunkCount(), ErrChunkOutOfRange)
 	}
 	want := b.expectedChunkSize(n)
-	tmp := s.chunkPath(id, n) + ".tmp"
-	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o640)
+	f, err := os.CreateTemp(s.blobDir, id+"."+strconv.Itoa(n)+".*.tmp")
 	if err != nil {
 		return 0, fmt.Errorf("store: create chunk: %w", err)
 	}
+	tmp := f.Name()
 	written, err := io.Copy(f, io.LimitReader(r, want+1))
 	if cerr := f.Close(); err == nil {
 		err = cerr
@@ -215,11 +215,11 @@ func (s *Store) CompleteBlob(ctx context.Context, id string) error {
 }
 
 func (s *Store) assemble(b Blob) error {
-	tmp := s.BlobPath(b.ID) + ".tmp"
-	out, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o640)
+	out, err := os.CreateTemp(s.blobDir, b.ID+".*.tmp")
 	if err != nil {
 		return fmt.Errorf("store: create blob file: %w", err)
 	}
+	tmp := out.Name()
 	var total int64
 	for n := range b.ChunkCount() {
 		in, err := os.Open(s.chunkPath(b.ID, n))
