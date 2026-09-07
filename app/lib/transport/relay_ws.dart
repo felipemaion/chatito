@@ -96,8 +96,12 @@ class RelayWs {
   /// garantia que alguma mensagem chegasse a um log visível de verdade.
   /// Nunca inclui conteúdo de mensagens nem o token: só metadados de
   /// transição (geração, código de fechamento, tempos).
-  void _devLog(String message) =>
-      developer.log(message, name: 'chatito.ws', level: 800);
+  void _devLog(String message) {
+    developer.log(message, name: 'chatito.ws', level: 800);
+    // Em release o dart:developer é removido; print sai como I/flutter no logcat.
+    // ignore: avoid_print
+    print('[chatito.ws] $message');
+  }
 
   /// Abre (ou mantém) a conexão. Idempotente, inclusive com chamadas
   /// concorrentes: a 2ª nunca abre uma 2ª conexão real, só aguarda a 1ª

@@ -66,7 +66,11 @@ class RealChatFacade implements ChatFacade {
   }
 
   Future<void> _loadInitialSession() async {
+    // ignore: avoid_print
+    print('[chatito.boot] restore: início');
     final s = await _onboarding.restore();
+    // ignore: avoid_print
+    print('[chatito.boot] restore: fim (sessão=${s != null})');
     if (s == null) return;
     _setActive(s);
     // dispose() pode ter rodado entre a construção e aqui (raro, mas
