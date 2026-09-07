@@ -22,6 +22,12 @@ class RelayWs {
     required this.onEnvelope,
     this.backoffBase = const Duration(seconds: 1),
     this.backoffMax = const Duration(seconds: 30),
+    // Maior que o intervalo de ping do servidor com folga (30s × 2 faltados,
+    // PROTOCOL.md §4) — cobre tanto um handshake que trava depois do upgrade
+    // HTTP (nunca chega `hello`) quanto uma conexão que já estava online e
+    // simplesmente para de mandar qualquer coisa sem fechar (NAT/rede que
+    // engole a conexão sem RST/FIN: nem onDone nem onError chegam nesse caso).
+    this.staleTimeout = const Duration(seconds: 75),
     Random? random,
     void Function(String message)? log,
   }) : _uri = _wsUri(baseUrl),
@@ -33,12 +39,14 @@ class RelayWs {
   final Future<void> Function(Envelope envelope) onEnvelope;
   final Duration backoffBase;
   final Duration backoffMax;
+  final Duration staleTimeout;
   final Random _random;
   final void Function(String) _log;
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _sub;
   Timer? _retry;
+  Timer? _staleTimer;
   Future<void>? _connecting;
   bool _wanted = false;
   bool _disposed = false;
@@ -121,6 +129,7 @@ class RelayWs {
         onDone: _onDone,
         cancelOnError: false,
       );
+      _armStaleTimer();
     } on Object catch (e) {
       _log('ws connect falhou: $e');
       _channel = null;
@@ -129,6 +138,9 @@ class RelayWs {
   }
 
   void _onData(dynamic data) {
+    // Prova de vida: reseta o watchdog em qualquer byte recebido, mesmo um
+    // frame que não vai parsear — o que importa é que a conexão não está muda.
+    _armStaleTimer();
     final WsFrame frame;
     try {
       frame = WsFrame.fromJson(
@@ -192,7 +204,32 @@ class RelayWs {
     _log('ws erro: $e');
   }
 
+  /// (Re)inicia o relógio de "sinal de vida". Se ele chegar ao fim sem
+  /// [_armStaleTimer] ter sido chamado de novo (nova conexão ou frame
+  /// recebido), [_onStale] força uma reconexão.
+  void _armStaleTimer() {
+    _staleTimer?.cancel();
+    _staleTimer = Timer(staleTimeout, _onStale);
+  }
+
+  void _onStale() {
+    _log(
+      'watchdog: sem nenhum frame em $staleTimeout — forçando reconexão '
+      '(handshake travado ou conexão morta sem close/error)',
+    );
+    unawaited(_forceReconnect());
+  }
+
+  /// Fecha a conexão atual (sem esperar resposta do outro lado, que já
+  /// provou estar mudo) e agenda uma nova tentativa, como se tivesse caído.
+  Future<void> _forceReconnect() async {
+    await _close();
+    if (_wanted && !_disposed) _scheduleRetry();
+  }
+
   Future<void> _onDone() async {
+    _staleTimer?.cancel();
+    _staleTimer = null;
     final code = _channel?.closeCode;
     _lastCloseCode = code;
     _channel = null;
@@ -232,6 +269,8 @@ class RelayWs {
   }
 
   Future<void> _close() async {
+    _staleTimer?.cancel();
+    _staleTimer = null;
     final ch = _channel;
     _channel = null;
     await _sub?.cancel();

@@ -32,6 +32,24 @@ class FakeRelay {
   bool rejectAllTokens = false;
   int _seq = 0;
 
+  /// Quando `true`, aceita o upgrade HTTP→WebSocket mas trava aí: nunca manda
+  /// `hello`, nunca lê frames do cliente. Simula um handshake de app que
+  /// nunca completa (proxy/servidor travado depois do upgrade). O socket fica
+  /// em [heldSockets], não em [sockets] (nunca chega a "vivo" para o relay).
+  bool holdHandshake = false;
+  final heldSockets = <String, WebSocket>{};
+
+  /// Socket que "desapareceu": some da bookkeeping do relay sem mandar close
+  /// nem error — o cliente nunca recebe nenhum evento (nem onDone, nem onError),
+  /// simulando um NAT/rede que engole a conexão sem RST/FIN. Mantém uma
+  /// referência em [vanishedSockets] só para o objeto não ser finalizado.
+  final vanishedSockets = <String, WebSocket>{};
+
+  void vanish(String deviceId) {
+    final ws = sockets.remove(deviceId);
+    if (ws != null) vanishedSockets[deviceId] = ws;
+  }
+
   String _id(String prefix) =>
       '${prefix}_${base64Url.encode(List.filled(16, ++_seq & 0xff)).substring(0, 22)}';
 
@@ -452,6 +470,10 @@ class FakeRelay {
 
   Future<void> _ws(HttpRequest req, Device me) async {
     final ws = await WebSocketTransformer.upgrade(req);
+    if (holdHandshake) {
+      heldSockets[me.id] = ws;
+      return;
+    }
     final old = sockets[me.id];
     if (old != null) {
       await old.close(4409);

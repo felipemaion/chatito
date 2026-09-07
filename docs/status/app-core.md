@@ -65,6 +65,19 @@
 - Testes novos em `test/domain/onboarding_test.dart` (5), com um `FlakyKeyStore` que simula
   falha de escrita e releitura inconsistente. 117/117 testes verdes no total.
 
+## RelayWs — watchdog para handshake travado e socket mudo
+- Testes novos em `test/transport/relay_ws_test.dart`, com dois recursos novos no `fake_relay`:
+  `holdHandshake` (aceita o upgrade HTTP→WS mas nunca manda `hello`, fica em `heldSockets`) e
+  `vanish(deviceId)` (some da bookkeeping sem mandar close/error — nem `onDone` nem `onError`
+  chegam ao cliente, simulando NAT/rede que engole a conexão sem RST/FIN).
+- **Gap real encontrado**: `RelayWs` não tinha nenhum mecanismo para detectar essas duas
+  situações — ficava preso em `connecting` para sempre (handshake nunca completa) ou continuava
+  "online" indefinidamente sobre uma conexão morta (socket sumiu). Corrigido com um watchdog:
+  um timer (`staleTimeout`, padrão 75 s — folga sobre os 30 s × 2 de ping do servidor,
+  PROTOCOL.md §4) que reseta a cada frame recebido (mesmo malformado) e, se expirar, fecha a
+  conexão e agenda reconexão como se tivesse caído.
+- 119/119 testes verdes (via container Linux).
+
 ## RelayWs — testes de queda/corrida (fake_relay)
 - Testes novos em `test/transport/relay_ws_test.dart`: `closeSocket(code: 1001)` (queda de rede,
   reconecta sozinho e zera tentativas), `closeSocket(code: 4409)` simulado direto pelo relay (sem
