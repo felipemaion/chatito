@@ -144,4 +144,35 @@ void main() {
       await facade.dispose();
     },
   );
+
+  group('autoConnect no fim do carregamento', () {
+    // Bug de boot no Android: quem chamaria connect() é o observador de
+    // conectividade (connectivity_plus), mas ele pode não emitir um evento
+    // inicial — ninguém mais chama connect() sozinho. Se já há sessão salva
+    // (token), a fachada precisa conectar por conta própria assim que o
+    // carregamento terminar, sem que ninguém peça.
+    test(
+      'com sessão salva: conecta sozinha sem que ninguém chame connect()',
+      () async {
+        await seedReturningUser();
+        final facade = build();
+
+        // De propósito: nenhuma chamada a connect()/ensureConnected()/init().
+        await until(
+          () => facade.currentConnection == ConnectionState.online,
+          reason: 'deveria conectar sozinha ao terminar de carregar a sessão',
+        );
+
+        await facade.dispose();
+      },
+    );
+
+    test('sem sessão salva: não tenta conectar nada sozinha', () async {
+      final facade = build(); // keyStore vazio
+      await facade.init();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(facade.currentConnection, ConnectionState.offline);
+      await facade.dispose();
+    });
+  });
 }
