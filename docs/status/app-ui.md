@@ -247,16 +247,30 @@
   nesse tipo de teste em CI, ver item 10): roundtrip de identidade/token/sessão, criação do arquivo em JSON,
   permissão 0600 (pulado no Windows), `delete`/`clear`, arquivo corrompido não trava, migração (copia
   quando vazio, não sobrescreve quando já tem dado, não faz nada se a origem também está vazia).
+- **16. As 2 falhas restantes do item 14, causa raiz confirmada por execução real.** O usuário rodou
+  `flutter test` no Mac dele na branch e apontou exatamente `test/ui/session_invalid_test.dart` (2 falhas,
+  191 outros verdes). Desta vez, antes de corrigir de novo, montei um repro fiel num container Linux
+  (`ghcr.io/cirruslabs/flutter:stable`) copiando os arquivos reais de domínio/UI envolvidos (sem `sodium`/
+  `drift`/plugins nativos — nenhum deles é usado por este caminho) e **reproduzi as 2 falhas com o texto de
+  erro idêntico** ao que apareceria localmente, antes de tentar qualquer correção às cegas:
+  - **`AppLifecycleState`: a versão do Flutter aqui tem 5 estados** (`resumed → inactive → hidden → paused`
+    e volta), não os 3 que eu assumia (`resumed/inactive/paused`). Meus testes chamavam
+    `handleAppLifecycleStateChanged(paused)` seguido direto de `(resumed)` — o próprio
+    `AppLifecycleListener` do Flutter valida a máquina de estados e lança `AssertionError` numa transição
+    inválida. Corrigido nos 3 testes que simulam segundo-plano/retomada: sequência completa
+    `inactive → hidden → paused → hidden → inactive → resumed`.
+  - **Janela de teste pequena demais**: `session_invalid_test.dart` tinha seu próprio `_pumpApp` (não usava
+    o `helpers.dart` compartilhado) e nunca chamava `tester.binding.setSurfaceSize` — a janela padrão do
+    teste (`800×600`) não é alta o bastante pro formulário de onboarding inteiro, e o botão "register"
+    ficava fora da área visível; o `tap()` errava o hit test. Corrigido setando `Size(400, 800)` (mesmo
+    padrão do `helpers.dart`).
+  Confirmado no mesmo container, com o teste corrigido: as 4 execuções de `session_invalid_test.dart`
+  passam (`All tests passed!`) — desta vez com prova de execução real, não só análise estática.
 ## Em andamento
-- (nada) — itens 11 a 15 e o merge commitados e com push feito.
+- (nada) — itens 11 a 16 e o merge commitados e com push feito.
 ## Bloqueios
 - **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): a última verificação real foi a
   do item 11; não voltei a checar desde então (mesmo bloqueio, sem motivo pra esperar que tenha mudado).
-- **Item 14 não foi validado por execução real** (nem localmente — Xcode incompleto — nem em CI — billing):
-  só por `flutter analyze --fatal-infos` (limpo) e raciocínio cuidadoso sobre a mecânica do Riverpod/
-  `flutter_test`. O usuário tem `flutter test` funcionando no Mac dele; se ainda sobrar alguma falha depois
-  deste push, preciso do nome exato do(s) teste(s) e, se possível, do texto do erro para não ficar
-  adivinhando de novo.
 - **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
   da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para
   **todo** o projeto sempre que qualquer pacote com build hook está no grafo de dependências — mesmo que

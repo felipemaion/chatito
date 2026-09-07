@@ -60,6 +60,17 @@ Future<ProviderContainer> _pumpApp(
     ],
   );
   addTearDown(container.dispose);
+  // Sem isto a janela de teste padrão fica pequena demais para o formulário
+  // de onboarding inteiro — o botão "register" cai fora da área visível e o
+  // tap erra o hit test.
+  const size = Size(400, 800);
+  await tester.binding.setSurfaceSize(size);
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
@@ -83,7 +94,11 @@ void main() {
 
     // Um resume nesse momento (sessão nunca confirmou "registrado") não
     // deve sequer tentar `connect()` — é a corrida real reportada em campo.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(
       sessionInvalidRetryDelay + const Duration(milliseconds: 500),
@@ -106,7 +121,11 @@ void main() {
     // Simula o token expirando/sumindo enquanto o app estava em segundo plano.
     f.shouldFail = true;
     final callsBefore = f.connectCalls;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
@@ -135,7 +154,11 @@ void main() {
       final container = await _pumpApp(tester, f);
 
       f.shouldFail = true;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
       f.shouldFail = false; // volta a funcionar antes da 2ª tentativa confirmar
