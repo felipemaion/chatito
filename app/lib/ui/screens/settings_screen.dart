@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../platform/server_config.dart';
@@ -31,7 +32,15 @@ class SettingsScreen extends ConsumerWidget {
     );
     return Scaffold(
       key: const Key('settings'),
-      appBar: AppBar(title: const Text(S.settings)),
+      appBar: AppBar(
+        title: const Text(S.settings),
+        // Desktop não tem botão físico de voltar e a tela pode ser aberta sem
+        // pilha (faixa de conexão): sempre oferece um caminho de volta.
+        leading: BackButton(
+          key: const Key('settings-back'),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+        ),
+      ),
       body: ListView(
         children: [
           if (me != null)
