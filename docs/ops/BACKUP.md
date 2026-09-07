@@ -46,7 +46,7 @@ EOF
 sudo install -d -m 0700 /home/<DOMINIO>/backups
 ```
 
-Copie para fora do servidor de vez em quando (`scp ubuntu@167.126.3.134:/home/<DOMINIO>/backups/relay-*.db ~/Backups/chatito/`).
+Copie para fora do servidor de vez em quando (`scp ubuntu@<IP_DO_SERVIDOR>:/home/<DOMINIO>/backups/relay-*.db ~/Backups/chatito/`).
 O db contém apenas metadados (chaves públicas, hashes de token, fila cifrada); mesmo assim trate
 como confidencial: quem tem o db + o env consegue **personificar o servidor**, não ler mensagens.
 

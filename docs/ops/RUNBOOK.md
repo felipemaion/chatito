@@ -15,7 +15,7 @@ Tudo abaixo roda como operador (`ubuntu`) salvo indicação. **Nada disto é exe
 | --- | --- |
 | Domínio decidido e zona na Cloudflare | Cloudflare → Websites |
 | Chave de deploy | `ssh-keygen -t ed25519 -C 'github-actions-deploy@chatito' -f ~/.ssh/chatito-deploy -N ''` |
-| Host key do servidor (uma vez, de máquina **não banida**) | `ssh-keyscan -t ed25519,ecdsa 167.126.3.134 > chatito-known_hosts` |
+| Host key do servidor (uma vez, de máquina **não banida**) | `ssh-keyscan -t ed25519,ecdsa <IP_DO_SERVIDOR> > chatito-known_hosts` |
 | Projeto Firebase + service account | [FIREBASE.md](FIREBASE.md) |
 
 ## 1. Escolher `<DOMINIO>` e `<APP_USER>`; confirmar que não existem
@@ -119,7 +119,7 @@ ou pelo app (`POST /v1/admin/invites`, papel admin).
 
 ## 9. Cloudflare
 
-Registro **A** `<DOMINIO>` → `167.126.3.134`, **Proxied**, SSL/TLS = **Full (strict)**.
+Registro **A** `<DOMINIO>` → `<IP_DO_SERVIDOR>`, **Proxied**, SSL/TLS = **Full (strict)**.
 WebSocket já vem habilitado no plano Free (Network → WebSockets = On; conferir).
 O proxy da Cloudflare limita cada request a **100 MB** — os chunks de blob são de 8 MiB, OK.
 
@@ -175,7 +175,7 @@ cd /home/caddy.internal && docker compose exec caddy wget -qO- http://chatito-re
 ## 14. Secrets no GitHub (environment `production`) + workflow de deploy
 
 ```bash
-gh secret set DEPLOY_HOST        --env production --repo felipemaion/chatito --body 167.126.3.134
+gh secret set DEPLOY_HOST        --env production --repo felipemaion/chatito --body <IP_DO_SERVIDOR>
 gh secret set DEPLOY_USER        --env production --repo felipemaion/chatito --body chatito01
 gh secret set DEPLOY_SSH_KEY     --env production --repo felipemaion/chatito < ~/.ssh/chatito-deploy
 gh secret set DEPLOY_KNOWN_HOSTS --env production --repo felipemaion/chatito < chatito-known_hosts

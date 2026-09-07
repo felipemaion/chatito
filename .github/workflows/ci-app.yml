@@ -1,6 +1,9 @@
 name: ci-app
 on:
-  push: { paths: ['app/**', 'docs/protocol/**', '.github/workflows/ci-app.yml'] }
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['app/**', 'docs/protocol/**', '.github/workflows/ci-app.yml']
   pull_request: { paths: ['app/**', 'docs/protocol/**', '.github/workflows/ci-app.yml'] }
 jobs:
   test:
@@ -23,7 +26,8 @@ jobs:
           echo "core coverage: ${total:-0}%"
           awk -v t="${total:-0}" 'BEGIN { exit (t+0 < 80) }'
   build-desktop:
-    if: github.event_name == 'pull_request'
+    # Runners macOS (10x) e Windows (2x) esgotam a cota do repo privado; só sob demanda ou em release.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'build-desktop'))
     strategy:
       fail-fast: false
       matrix:
