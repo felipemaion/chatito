@@ -13,6 +13,7 @@ class _SessionListenable extends ChangeNotifier {
   _SessionListenable(Ref ref) {
     ref.listen(sessionProvider, (_, _) => notifyListeners());
     ref.listen(sessionReadyProvider, (_, _) => notifyListeners());
+    ref.listen(sessionInvalidProvider, (_, _) => notifyListeners());
   }
 }
 
@@ -33,8 +34,14 @@ final routerProvider = Provider.family<GoRouter, String?>((
       // para onboarding e, ao registrar, perdido (volta para `/`, não para
       // o link original).
       if (!ref.read(sessionReadyProvider)) return null;
-      final registered = ref.read(sessionProvider).isRegistered;
       final onboarding = state.matchedLocation == '/onboarding';
+      // Sessão que o núcleo acha válida mas não é mais utilizável (token
+      // sumiu/expirou): manda para onboarding com mensagem clara em vez de
+      // deixar a UI presa tentando reconectar indefinidamente.
+      if (ref.read(sessionInvalidProvider)) {
+        return onboarding ? null : '/onboarding';
+      }
+      final registered = ref.read(sessionProvider).isRegistered;
       if (!registered && !onboarding) return '/onboarding';
       if (registered && onboarding) return '/';
       return null;

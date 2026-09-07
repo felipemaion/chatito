@@ -145,17 +145,158 @@
     que o motivo original. `ACCESS_NETWORK_STATE` também é exigido pelo `connectivity_plus`.
   Testes: `test/ui/push_test.dart` (rede voltando reconecta sem pausar/retomar o app; `NoopConnectivityWatcher`)
   e `test/ui/platform_helpers_test.dart` (botão Reconectar). Nenhuma mudança no domínio/app-core.
+- **12. UI presa achando que há sessão quando o token é inválido.** `RealChatFacade.connect()` lança
+  `ChatException('not_registered', …)` se o token sumiu do keychain mesmo com a sessão em memória
+  (`sessionProvider`) continuando `Registered` — antes disso ficava sem tratamento: a exceção do
+  `unawaited(requestReconnect(...))` era perdida e a UI ficava presa mostrando "Conectando…"/"Sem conexão"
+  para sempre, sem caminho claro (o botão Reconectar do item 11 só repetia o mesmo erro).
+  - `ui/providers.dart`: `sessionInvalidProvider` (bool) — sinaliza esse estado para o router.
+  - `ui/reconnect.dart`: `isSessionInvalid(error)` classifica `ChatException` com código `not_registered`/
+    `unauthorized`; `reconnectAndTrack(ref)` — novo ponto único usado em **todo** lugar que antes chamava
+    `requestReconnect` direto (resume, push, rede voltando, `sessionProvider` ficando registrado, botão
+    Reconectar) — tenta reconectar e marca `sessionInvalidProvider` conforme o resultado.
+  - `ui/router.dart`: `redirect` manda para `/onboarding` sempre que `sessionInvalidProvider` for
+    verdadeiro, **independente** do que `sessionProvider` diz (o núcleo pode continuar achando que há
+    sessão). Registrar de novo com sucesso limpa a flag (`onboarding_screen.dart._submit`).
+  - `onboarding_screen.dart`: mensagem clara (`S.sessionExpired` — "Sua sessão expirou ou este aparelho foi
+    removido. Registre-se novamente.") acima do formulário quando chega por causa disso, em vez do usuário
+    só ver a tela de convite sem contexto.
+  Testes: `test/ui/session_invalid_test.dart` (sessão fica inválida em segundo plano → onboarding com
+  mensagem ao voltar; registrar de novo limpa a mensagem). Nenhuma mudança no domínio/app-core.
+- **13. Correção do item 12 — falso positivo confirmado por logcat.** `not_registered` na abertura do app
+  era **corrida de inicialização**, não sessão inválida de verdade: a UI chamava `connect()` antes de o
+  `RealChatFacade` terminar de carregar a sessão do `KeyStore` — com o código do item 12, isso mandava
+  qualquer usuário para o onboarding a cada abertura e criava um device novo, com a identidade real intacta
+  e abandonada. O app-core está fazendo `connect()`/`ensureConnected()` aguardarem esse carregamento
+  (`_ready`) do lado deles; do lado do app-ui, `ui/reconnect.dart` ganhou duas guardas antes de marcar
+  `sessionInvalidProvider`:
+  1. **Só age se `sessionProvider` já emitiu "registrado"** — `reconnectAndTrack` agora começa com
+     `if (!ref.read(sessionProvider).isRegistered) return;`, então nenhuma tentativa de `connect()` acontece
+     antes disso (nem no resume, nem no wake do push, nem no primeiro evento de conectividade — a mesma
+     guarda cobre os três, sem precisar tratar "1º evento" como caso especial e frágil).
+  2. **Confirmação por persistência**: a 1ª falha por `not_registered`/`unauthorized` não marca mais nada;
+     espera [`sessionInvalidRetryDelay`] (2 s) e tenta de novo — só marca `sessionInvalidProvider = true` se
+     a 2ª tentativa falhar do mesmo jeito. Uma falha isolada (a própria corrida, ou uma rede instável) não
+     manda mais ninguém para onboarding.
+  3. **Nunca apaga dados locais**: confirmado — nenhum código deste agente chama qualquer coisa parecida
+     com "esquecer sessão"/"apagar chaves"; a única ação em caso de sessão confirmada inválida é navegar
+     para `/onboarding` (o usuário decide se registra de novo). A `ChatFacade` também não expõe esse tipo de
+     método hoje.
+  Testes reescritos em `session_invalid_test.dart`: corrida de inicialização (sessão nunca confirma
+  registrado) não chama `connect()` nem mexe na flag; falha confirmada em 2 tentativas 2s apart manda para
+  onboarding; falha isolada/transitória (resolve antes da 2ª tentativa) não manda. Não pude rodar
+  `flutter test` nesta máquina (bloqueio de Xcode já documentado); a lógica de retry usa `Future.delayed`
+  puro (Timer virtualizável por `FakeAsync`/`tester.pump(duration)`), padrão bem estabelecido e diferente do
+  I/O real de disco que causou os travamentos dos itens 9/10 — validado só por `flutter analyze` e leitura
+  cuidadosa, não por reprodução em container desta vez.
+- **KeyStore de desktop (macOS/Windows) — confirmado já entregue.** `platform/secure_key_store.dart`
+  (`SecureKeyStore` sobre `flutter_secure_storage`) é usado sem condicional nenhuma em `main.dart` para
+  **todas** as plataformas buildadas neste projeto — não é um caminho só de Android. Os pacotes de
+  plataforma já estão resolvidos e registrados: `flutter_secure_storage_darwin` (Keychain no macOS) e
+  `flutter_secure_storage_windows` (Windows: **é literalmente arquivo cifrado com DPAPI** — o Windows não
+  tem um Keychain equivalente exposto; o plugin já implementa isso como arquivo no diretório de dados local
+  do app, cifrado pela API do próprio Windows). Linux **não é alvo deste projeto** (sem pasta `linux/`, fora
+  da lista de plataformas do `PLAN.md` — só macOS/Windows/Android); não criei nada lá. Não construí uma
+  implementação de arquivo própria/paralela: seria crypto caseira duplicando o que os plugins nativos já
+  fazem com mais segurança (contraria a regra do `CLAUDE.md` de só usar primitivas de alto nível prontas).
+- **14. 3 testes falhando no Mac do usuário (rodou `flutter test` de verdade) + merge do app-core.**
+  - **`git merge origin/main`**: trouxe `ChatFacade.ensureConnected()` (espera o carregamento inicial da
+    sessão — `_ready` — antes de decidir, e cancela tentativa travada/backoff em andamento) e a correção da
+    corrida de inicialização do lado do `RealChatFacade`, além de um fix de macOS
+    (`MacOsOptions(usesDataProtectionKeychain: false)` em `secure_key_store.dart`, keychain clássico por
+    causa de assinatura ad-hoc). Conflitos em `lib/ui/{providers,reconnect,router,strings,
+    screens/onboarding_screen,widgets/connection_banner}.dart` e `platform/app_services.dart` resolvidos
+    mantendo este branch (origin/main só tinha a versão pré-item-12, já superada); em
+    `secure_key_store.dart` mantido o fix de macOS do app-core.
+  - **`ui/reconnect.dart`**: `requestReconnect` passou a chamar `facade.ensureConnected()` em vez de
+    `connect()` — usado em **todos** os gatilhos (resume, push, rede voltando, botão) via
+    `reconnectAndTrack`, já que todos passam por ali.
+  - **Bug real encontrado no botão "Reconectar" (explica 1 das 3 falhas)**: `reconnectAndTrack` lê
+    `sessionProvider` (Riverpod) antes de agir; num teste de widget que renderiza só `ConnectionBanner`
+    isolado (sem `AppServices`/`GoRouter` por perto), esse provider nunca tinha sido "aquecido" antes do
+    toque no botão — a 1ª leitura disparava a construção do provider *ali mesmo*, devolvendo o valor
+    inicial `NotRegistered` (o placeholder síncrono antes da 1ª emissão do stream chegar), então o botão
+    não fazia nada. Em produção isto nunca acontece (`AppServices` sempre envolve o app inteiro e aquece o
+    provider primeiro), mas o teste isolado expunha exatamente essa lacuna. Corrigido o teste
+    (`platform_helpers_test.dart`) trocando para `pumpApp` — o próprio `GoRouter`, ao resolver a rota
+    inicial, já lê `sessionProvider` do jeito que `AppServices` faria de verdade.
+  - **Teste "registrar de novo limpa a mensagem de sessão inválida" reescrito**: usava uma fake já
+    registrada e chamava `register()` de novo por cima — um cenário ambíguo que não reflete a situação real
+    (sessão inválida confirmada = **sem** identidade/token utilizáveis, não uma re-registro por cima de algo
+    que já funciona). Reescrito partindo de `startRegistered: false`, mais fiel ao caso real e sem a
+    ambiguidade. Não consegui isolar com certeza absoluta a causa exata da falha original nesse teste
+    específico (sem `flutter test` local); esta reformulação é a correção mais defensável que encontrei,
+    não uma reprodução confirmada bit a bit.
+  - Terceiro teste apontado pelo usuário ("e mais 1", não nomeado): não identificado por nome: as duas
+    correções acima (gate correto de `reconnectAndTrack` mantido, mas agora sem o problema de provider frio
+    no teste; `ensureConnected()`) devem cobrir a mesma classe de causa. Se ainda faltar algum, preciso do
+    nome exato do terceiro teste para investigar.
+- **15. KeyStore em arquivo para desktop — entregue.** `platform/file_key_store.dart`: `FileKeyStore`
+  (`extends MapKeyStore`, mesma base de `SecureKeyStore`) grava tudo num único JSON em
+  `getApplicationSupportDirectory()/chatito/keystore.json`, escrita atômica (`.tmp` + rename), permissão
+  `0600` via `chmod` (POSIX — macOS/Linux; sem equivalente ACL no Windows, documentado no código: a proteção
+  lá vem do próprio `%LOCALAPPDATA%` ser exclusivo do usuário). `migrateFrom(KeyStore old)` copia
+  identidade/token/sessão do keystore antigo (keychain) **só se o arquivo ainda estiver vazio** e **nunca
+  apaga** o armazenamento antigo (resquício inofensivo é preferível a arriscar perda de identidade numa
+  migração que falhe no meio). `main.dart`: Android continua com `SecureKeyStore` (Keystore do SO, já
+  robusto); desktop (macOS/Windows/Linux — `PlatformInfo.isDesktop`) usa `FileKeyStore.open()` +
+  `migrateFrom(SecureKeyStore())` na inicialização. Nenhuma cripto caseira: os valores gravados (chave
+  privada `libsodium`, token opaco do servidor) já vêm prontos; o arquivo em si não tenta adicionar outra
+  camada de cifra. Testes em `test/platform/file_key_store_test.dart` (Dart puro, `package:test` — não
+  `flutter_test`, então sem o risco de travar sob o relógio falso: I/O real de disco já se provou seguro
+  nesse tipo de teste em CI, ver item 10): roundtrip de identidade/token/sessão, criação do arquivo em JSON,
+  permissão 0600 (pulado no Windows), `delete`/`clear`, arquivo corrompido não trava, migração (copia
+  quando vazio, não sobrescreve quando já tem dado, não faz nada se a origem também está vazia).
+- **16. As 2 falhas restantes do item 14, causa raiz confirmada por execução real.** O usuário rodou
+  `flutter test` no Mac dele na branch e apontou exatamente `test/ui/session_invalid_test.dart` (2 falhas,
+  191 outros verdes). Desta vez, antes de corrigir de novo, montei um repro fiel num container Linux
+  (`ghcr.io/cirruslabs/flutter:stable`) copiando os arquivos reais de domínio/UI envolvidos (sem `sodium`/
+  `drift`/plugins nativos — nenhum deles é usado por este caminho) e **reproduzi as 2 falhas com o texto de
+  erro idêntico** ao que apareceria localmente, antes de tentar qualquer correção às cegas:
+  - **`AppLifecycleState`: a versão do Flutter aqui tem 5 estados** (`resumed → inactive → hidden → paused`
+    e volta), não os 3 que eu assumia (`resumed/inactive/paused`). Meus testes chamavam
+    `handleAppLifecycleStateChanged(paused)` seguido direto de `(resumed)` — o próprio
+    `AppLifecycleListener` do Flutter valida a máquina de estados e lança `AssertionError` numa transição
+    inválida. Corrigido nos 3 testes que simulam segundo-plano/retomada: sequência completa
+    `inactive → hidden → paused → hidden → inactive → resumed`.
+  - **Janela de teste pequena demais**: `session_invalid_test.dart` tinha seu próprio `_pumpApp` (não usava
+    o `helpers.dart` compartilhado) e nunca chamava `tester.binding.setSurfaceSize` — a janela padrão do
+    teste (`800×600`) não é alta o bastante pro formulário de onboarding inteiro, e o botão "register"
+    ficava fora da área visível; o `tap()` errava o hit test. Corrigido setando `Size(400, 800)` (mesmo
+    padrão do `helpers.dart`).
+  Confirmado no mesmo container, com o teste corrigido: as 4 execuções de `session_invalid_test.dart`
+  passam (`All tests passed!`) — desta vez com prova de execução real, não só análise estática.
+- **17. Persistência da URL do servidor** (causa raiz do "Conectando…" infinito nos celulares depois de
+  reiniciar, confirmada em campo por logcat + `nc`: `platform/server_config.dart` nunca persistia a URL —
+  `serverUrlProvider` sempre voltava ao padrão de dev, `10.0.2.2`/`127.0.0.1`, inalcançável fora do
+  emulador/desktop — e `realChatFacadeProvider` reconstruía a fachada com esse endereço errado a cada
+  boot). Corrigido:
+  - `platform/server_config.dart`: `loadSavedServerUrl`/`saveServerUrl` (via o mesmo `KeyStore` já aberto
+    para identidade/token — `FileKeyStore`/`SecureKeyStore`, sem dependência nova), `savedServerUrlProvider`
+    (injetado em `main()` ANTES de montar a fachada — nunca cai no padrão se já existe URL salva),
+    `serverUrlPersisterProvider` (como persistir, desacoplado do `KeyStore` p/ os testes de widget não
+    precisarem montar um de verdade), `isValidServerUrl` (`http(s)://host[:porta]`, sem caminho/query),
+    `serverConfiguredProvider` e `commitServerUrl` (valida + seta + marca + persiste, usado por onboarding
+    e Ajustes).
+  - `main.dart`: lê a URL salva antes do `runApp`.
+  - Onboarding: campo "Servidor" ganhou validação de formato; ao registrar, persiste a URL digitada.
+  - Ajustes: novo campo "Servidor" editável (`_ServerUrlSection`), salva + chama `ensureConnected()` na
+    fachada (que já se reconstrói sozinha via `ref.watch(serverUrlProvider)` em `realChatFacadeProvider`).
+  - `ConnectionBanner`: instalação antiga (sessão registrada, mas nunca passou por esta correção — sem URL
+    salva) mostra "Servidor não configurado" com atalho para Ajustes, em vez de tentar reconectar sozinha
+    contra o endereço padrão de dev (quase certo errado num aparelho de verdade).
+  TDD: `test/platform/server_config_test.dart` (novo) + casos novos em `onboarding_test.dart`,
+  `settings_test.dart`, `platform_helpers_test.dart`; `test/ui/helpers.dart` ganhou um default de
+  `savedServerUrlProvider` (senão toda sessão registrada nos testes existentes apareceria como "não
+  configurada"). Verificado por execução real no mesmo repro Docker do item 16 (ampliado com
+  `storage/key_store.dart` + `crypto/crypto_box.dart` reais e stubs mínimos do resto): 28 testes,
+  `All tests passed!`, tanto isolado quanto junto do resto da suíte de UI. `flutter analyze --fatal-infos`
+  limpo no projeto real.
 ## Em andamento
-- (nada) — item 11 commitado e com push feito no PR #3.
-## Bloqueios (atualização)
-- **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): as execuções mais recentes,
-  incluindo a do item 11, falham em segundos com "recent account payments have failed or your spending
-  limit needs to be increased" antes de rodar qualquer teste. Não hei nada a corrigir do meu lado — o
-  orquestrador precisa resolver em Settings → Billing & plans do GitHub e então re-disparar o CI.
-- `requestReconnect` chama `facade.connect()`; trocar para `facade.ensureConnected()` assim que o app-core
-  adicionar esse método à `ChatFacade` (mencionado na tarefa como já estando em andamento do lado deles) —
-  é uma troca de uma linha em `ui/reconnect.dart`.
+- (nada) — itens 11 a 17 e o merge commitados e com push feito.
 ## Bloqueios
+- **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): a última verificação real foi a
+  do item 11; não voltei a checar desde então (mesmo bloqueio, sem motivo pra esperar que tenha mudado).
 - **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
   da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para
   **todo** o projeto sempre que qualquer pacote com build hook está no grafo de dependências — mesmo que

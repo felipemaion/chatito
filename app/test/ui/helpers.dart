@@ -1,5 +1,6 @@
 import 'package:chatito/domain/domain.dart';
 import 'package:chatito/domain/fakes/fake_chat_facade.dart';
+import 'package:chatito/platform/server_config.dart';
 import 'package:chatito/ui/app.dart';
 import 'package:chatito/ui/providers.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 const wideSize = Size(1200, 800);
 const phoneSize = Size(400, 800);
+
+/// URL "já salva" por padrão nos testes de widget: a maioria não é sobre
+/// configuração de servidor, e sem isto toda sessão registrada apareceria
+/// como "servidor não configurado" (ver `ConnectionBanner`). Quem quiser
+/// testar esse caso específico passa o próprio override de
+/// `savedServerUrlProvider` em `overrides` — sobrescrever o mesmo provider
+/// duas vezes na mesma lista é erro em tempo de execução no Riverpod (não
+/// "o último vence"), então este default só entra quando o chamador ainda
+/// não decidiu por conta própria.
+const _testServerUrl = 'http://relay.test:8080';
+
+List<Override> _withDefaultServerUrl(List<Override> overrides) => [
+  if (!overrides.any((o) => o.origin == savedServerUrlProvider))
+    savedServerUrlProvider.overrideWithValue(_testServerUrl),
+  ...overrides,
+];
 
 /// Sobe o app inteiro com a fachada fake e a janela do tamanho pedido.
 Future<FakeChatFacade> pumpApp(
@@ -28,7 +45,10 @@ Future<FakeChatFacade> pumpApp(
   });
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [chatFacadeProvider.overrideWithValue(f), ...overrides],
+      overrides: [
+        chatFacadeProvider.overrideWithValue(f),
+        ..._withDefaultServerUrl(overrides),
+      ],
       child: ChatitoApp(initialLocation: initialLocation),
     ),
   );
@@ -57,7 +77,7 @@ Future<void> pumpScreen(
         chatFacadeProvider.overrideWithValue(
           facade ?? FakeChatFacade(autoReplyDelay: Duration.zero),
         ),
-        ...overrides,
+        ..._withDefaultServerUrl(overrides),
       ],
       child: MaterialApp(
         localizationsDelegates: ChatitoApp.localizationsDelegates,

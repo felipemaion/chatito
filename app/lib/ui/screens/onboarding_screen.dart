@@ -44,7 +44,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _error = null);
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    ref.read(serverUrlProvider.notifier).set(_server.text.trim());
+    // Válida (o form já garantiu isso via `validator` abaixo) — persiste já
+    // aqui, antes de registrar, para o endereço digitado sobreviver a um
+    // reinício mesmo que o registro em si ainda não tenha terminado.
+    await commitServerUrl(ref, _server.text.trim());
     try {
       await ref
           .read(chatFacadeProvider)
@@ -53,7 +56,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             deviceName: _device.text.trim(),
             platform: ref.read(platformInfoProvider).name,
           );
-      // O router redireciona ao observar a sessão.
+      // O router redireciona ao observar a sessão; limpa a mensagem de sessão
+      // inválida (se o motivo de estar aqui era essa e não "nunca registrado").
+      ref.read(sessionInvalidProvider.notifier).set(false);
     } on ChatException catch (e) {
       setState(
         () => _error = e.code == 'invalid_invite' ? S.invalidInvite : e.message,
@@ -68,6 +73,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final sessionInvalid = ref.watch(sessionInvalidProvider);
     return Scaffold(
       key: const Key('onboarding'),
       body: Center(
@@ -81,6 +87,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (sessionInvalid) ...[
+                    Container(
+                      key: const Key('session-invalid'),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber,
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              S.sessionExpired,
+                              style: TextStyle(
+                                color: theme.colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Icon(
                     Icons.lock_outline,
                     size: 56,
@@ -131,10 +165,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     enabled: !_busy,
                     decoration: const InputDecoration(
                       labelText: S.serverUrl,
+                      hintText: 'http://192.168.0.10:8080',
                       prefixIcon: Icon(Icons.dns_outlined),
                     ),
-                    validator: (v) =>
-                        (v ?? '').trim().isEmpty ? S.required : null,
+                    validator: (v) {
+                      final trimmed = (v ?? '').trim();
+                      if (trimmed.isEmpty) return S.required;
+                      if (!isValidServerUrl(trimmed)) {
+                        return S.invalidServerUrl;
+                      }
+                      return null;
+                    },
                     onFieldSubmitted: (_) => _submit(),
                   ),
                   if (_error != null) ...[

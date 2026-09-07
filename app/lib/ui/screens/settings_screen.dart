@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../platform/server_config.dart';
 import '../../protocol/protocol.dart' show Device, UserRole;
 import '../providers.dart';
 import '../settings.dart';
@@ -50,6 +51,8 @@ class SettingsScreen extends ConsumerWidget {
               ),
               subtitle: Text(d.platform),
             ),
+          header(S.serverUrl),
+          const _ServerUrlSection(),
           header(S.notifications),
           SwitchListTile(
             key: const Key('notifications-switch'),
@@ -82,4 +85,86 @@ class SettingsScreen extends ConsumerWidget {
     'windows' => Icons.laptop_windows,
     _ => Icons.devices,
   };
+}
+
+/// Endereço do relay, editável a qualquer momento (não só no onboarding) —
+/// para quando o servidor muda de endereço ou a instalação é antiga e nunca
+/// teve um salvo (ver `ConnectionBanner`/`serverConfiguredProvider`). Ao
+/// salvar, `serverUrlProvider` muda, o que já reconstrói
+/// `realChatFacadeProvider` sozinho (ele observa `serverUrlProvider`);
+/// depois disso só falta pedir pra conectar na fachada nova.
+class _ServerUrlSection extends ConsumerStatefulWidget {
+  const _ServerUrlSection();
+
+  @override
+  ConsumerState<_ServerUrlSection> createState() => _ServerUrlSectionState();
+}
+
+class _ServerUrlSectionState extends ConsumerState<_ServerUrlSection> {
+  late final TextEditingController _controller;
+  String? _error;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: ref.read(serverUrlProvider));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _error = null);
+    final url = _controller.text.trim();
+    if (!isValidServerUrl(url)) {
+      setState(() => _error = S.invalidServerUrl);
+      return;
+    }
+    setState(() => _busy = true);
+    await commitServerUrl(ref, url);
+    try {
+      await ref.read(chatFacadeProvider).ensureConnected();
+    } on Object catch (_) {
+      // Silencioso de propósito: a faixa de conexão já mostra o estado de
+      // novo (offline/conectando) se isto falhar — não precisa duplicar o
+      // erro aqui.
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            key: const Key('settings-server-url'),
+            controller: _controller,
+            enabled: !_busy,
+            decoration: InputDecoration(
+              labelText: S.serverUrl,
+              errorText: _error,
+              prefixIcon: const Icon(Icons.dns_outlined),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              key: const Key('save-server-url'),
+              onPressed: _busy ? null : _save,
+              child: Text(_busy ? S.registering : S.save),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:chatito/domain/domain.dart';
 import 'package:chatito/domain/fakes/fake_chat_facade.dart';
+import 'package:chatito/platform/server_config.dart';
 import 'package:chatito/ui/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,5 +50,47 @@ void main() {
     await tester.pump();
     final field = tester.widget<TextFormField>(find.byKey(const Key('invite')));
     expect(field.controller!.text, '7K3M-9QZR');
+  });
+
+  testWidgets('endereço de servidor inválido não registra e mostra erro', (
+    tester,
+  ) async {
+    final f = await pumpApp(tester, facade: _unregistered(), size: phoneSize);
+    await tester.enterText(find.byKey(const Key('invite')), '7K3M-9QZR');
+    await tester.enterText(find.byKey(const Key('device-name')), 'Meu Mac');
+    await tester.enterText(
+      find.byKey(const Key('server-url')),
+      '192.168.0.10:8080', // sem http(s)://
+    );
+    await tester.tap(find.byKey(const Key('register')));
+    await tester.pumpAndSettle();
+    expect(find.text(S.invalidServerUrl), findsOneWidget);
+    expect(find.byKey(const Key('onboarding')), findsOneWidget);
+    expect(await f.session, isA<NotRegistered>());
+  });
+
+  testWidgets('registrar persiste a URL do servidor (sobrevive a reiniciar)', (
+    tester,
+  ) async {
+    final saved = <String>[];
+    await pumpApp(
+      tester,
+      facade: _unregistered(),
+      size: phoneSize,
+      overrides: [
+        serverUrlPersisterProvider.overrideWithValue((url) async {
+          saved.add(url);
+        }),
+      ],
+    );
+    await tester.enterText(find.byKey(const Key('invite')), '7K3M-9QZR');
+    await tester.enterText(find.byKey(const Key('device-name')), 'Meu Mac');
+    await tester.enterText(
+      find.byKey(const Key('server-url')),
+      'http://192.168.15.8:8080',
+    );
+    await tester.tap(find.byKey(const Key('register')));
+    await tester.pumpAndSettle();
+    expect(saved, ['http://192.168.15.8:8080']);
   });
 }

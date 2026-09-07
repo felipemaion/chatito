@@ -2,6 +2,7 @@ import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/platform/files.dart';
 import 'package:chatito/platform/platform_info.dart';
 import 'package:chatito/platform/push.dart';
+import 'package:chatito/platform/server_config.dart';
 import 'package:chatito/ui/strings.dart';
 import 'package:chatito/ui/widgets/connection_banner.dart';
 import 'package:flutter/material.dart' hide ConnectionState;
@@ -65,15 +66,37 @@ void main() {
   testWidgets('botão Reconectar da faixa de conexão chama connect()', (
     tester,
   ) async {
+    // Precisa do app inteiro (não só `ConnectionBanner` isolado): o botão
+    // passa por `reconnectAndTrack`, que só age depois que `sessionProvider`
+    // emitiu "registrado" pela 1ª vez — o próprio `GoRouter` (dentro de
+    // `pumpApp`) já provoca essa 1ª leitura ao resolver a rota inicial, do
+    // jeito que aconteceria de verdade dentro do `AppServices` do app real.
     final f = FakeChatFacade(autoReplyDelay: Duration.zero);
-    await pumpScreen(
-      tester,
-      const Scaffold(body: ConnectionBanner()),
-      facade: f,
-    );
+    await pumpApp(tester, facade: f, size: phoneSize);
     expect(find.text(S.offline), findsOneWidget);
     await tester.tap(find.byKey(const Key('reconnect')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('connection-banner')), findsNothing);
   });
+
+  testWidgets(
+    'sessão registrada sem URL de servidor salva mostra "não configurado" '
+    'em vez de tentar reconectar sozinha',
+    (tester) async {
+      // Simula uma instalação antiga (registrada antes desta correção):
+      // nenhuma URL foi salva no boot. Sem isto, `pumpApp` sempre finge que
+      // já há uma salva (ver `_testServerUrl` em `helpers.dart`).
+      await pumpApp(
+        tester,
+        size: phoneSize,
+        overrides: [savedServerUrlProvider.overrideWithValue(null)],
+      );
+      expect(find.text(S.serverNotConfigured), findsOneWidget);
+      expect(find.byKey(const Key('reconnect')), findsNothing);
+      expect(find.byKey(const Key('banner-open-settings')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('banner-open-settings')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('settings')), findsOneWidget);
+    },
+  );
 }
