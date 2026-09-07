@@ -51,6 +51,39 @@
   `flutter test` local, mas via container Linux com `dart test`, cobrindo os mesmos arquivos de teste).
 - `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
 
+## RelayWs — testes de queda/corrida (fake_relay)
+- Testes novos em `test/transport/relay_ws_test.dart`: `closeSocket(code: 1001)` (queda de rede,
+  reconecta sozinho e zera tentativas), `closeSocket(code: 4409)` simulado direto pelo relay (sem
+  precisar de uma 2ª conexão real) e duas chamadas concorrentes de `connect()`.
+- **Bug real encontrado e corrigido**: `connect()` checava `_channel != null || _retry != null`
+  antes de abrir, mas esses campos só deixam de ser nulos **depois** do `await ch.ready` dentro de
+  `_open()` — duas chamadas concorrentes (ex.: `initState` + um retry externo) passavam a checagem
+  e abriam **duas conexões reais**, e a 2ª derrubava a 1ª com 4409 sozinha. Corrigido com um future
+  compartilhado (`_connecting`): a 2ª chamada aguarda a mesma tentativa em vez de abrir outra.
+- 112/112 testes verdes (validado via container Linux, mesmo procedimento de sempre nesta máquina).
+
+## Fase 2 — integração real Go↔Dart (feito)
+- `app/test/integration/relay_integration_test.dart` (Dart puro): só roda se `RELAY_URL` existir, senão
+  pula. Convite gerado sob demanda via `docker exec <container> /relay admin invite --user <nome>`
+  (configurável por `RELAY_ADMIN_CMD`/`RELAY_CONTAINER`; ou passe prontos em `RELAY_INVITE_A`/`_A2`/`_B`
+  se o processo do teste não tiver acesso ao Docker do host). Cobre com `RealChatFacade` de verdade:
+  onboarding com convite real, 2 devices do mesmo usuário (mesmo nome no `admin invite` reaproveita o
+  `user_id`, é assim que se ganha um 2º device no v1), diretório, texto 1:1 nos dois sentidos com
+  fan-out para o 2º device e ack, recibo `read`, grupo `g:familia`, arquivo de ~1 MiB cifrado/decifrado
+  byte a byte, reconexão do WS e safety number simétrico calculado pelos dois lados.
+- **Rodado de verdade contra o relay real** (`docker-relay-1`, `http://127.0.0.1:8080`): **8/8 testes
+  verdes**. Como `flutter test` local está bloqueado nesta máquina (ver bloqueio abaixo), rodei via a
+  mesma cópia standalone Dart-puro num container Linux, com `RELAY_URL=http://host.docker.internal:8080`
+  (Docker Desktop expõe o host assim) e os 3 convites gerados antes no host.
+- **Nenhum bug de interoperabilidade Go↔Dart encontrado** — protocolo, crypto e transporte bateram com
+  o servidor real de primeira. O único problema foi de desenho do próprio teste (corrigido antes do
+  commit): pedi um 2º "device" com nome de usuário diferente, o que cria um **usuário** diferente no
+  relay (não um 2º device do mesmo usuário) — corrigido reaproveitando o nome no `admin invite`.
+- Para reproduzir: `docker exec docker-relay-1 /relay admin invite --user "Foo-$(date +%s)"` (2×, mesmo
+  nome, para os 2 devices de A; 1× outro nome para B) → exportar como `RELAY_INVITE_A`/`_A2`/`_B` (ou
+  deixar o teste gerar sozinho, se tiver Docker à mão) → `RELAY_URL=http://127.0.0.1:8080 flutter test
+  test/integration` (numa máquina com Xcode completo; nesta aqui, ver bloqueio).
+
 ## Bloqueios
 - **`flutter test` local quebrado nesta máquina**: o hook de build nativo do `sodium` 4.x roda para
   **todo** `flutter test` (não só testes de crypto), e no macOS exige Xcode completo

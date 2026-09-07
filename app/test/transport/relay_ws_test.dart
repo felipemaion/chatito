@@ -42,10 +42,13 @@ void main() {
   Future<void> until(
     bool Function() cond, {
     Duration timeout = const Duration(seconds: 3),
+    String? reason,
   }) async {
     final end = DateTime.now().add(timeout);
     while (!cond()) {
-      if (DateTime.now().isAfter(end)) fail('timeout');
+      if (DateTime.now().isAfter(end)) {
+        fail('timeout${reason == null ? '' : ': $reason'}');
+      }
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
   }
@@ -284,6 +287,67 @@ void main() {
       );
       // O envelope continua pendente no relay (nunca foi ack'ado).
       expect(relay.queues['dev_me'], hasLength(1));
+    },
+  );
+
+  test('close 1001 (queda de rede) simulado: reconecta sozinho e zera as tentativas', () async {
+    final states = <ConnectionState>[];
+    make();
+    ws.watchConnection().listen(states.add);
+    await ws.connect();
+    await until(() => relay.sockets.containsKey('dev_me'));
+    expect(ws.reconnectAttempts, 0);
+
+    await relay.closeSocket('dev_me', code: 1001);
+    // `states` já tem `connecting`/`online` da 1ª conexão: espera o 2º
+    // `online` (não o 1º) para saber que o ciclo de queda→reconexão terminou.
+    await until(
+      () => states.where((s) => s == ConnectionState.online).length >= 2,
+      reason: 'reconectou sozinho e voltou a online',
+    );
+    await until(
+      () => states.last == ConnectionState.online,
+      reason: 'ficou online de novo',
+    );
+    await until(
+      () => ws.reconnectAttempts == 0,
+      reason: 'zera após a nova conexão ficar online',
+    );
+    expect(ws.lastCloseCode, 1001);
+  });
+
+  test('close 4409 simulado diretamente pelo relay: para de reconectar, sem outra conexão real', () async {
+    make();
+    await ws.connect();
+    await until(() => relay.sockets.containsKey('dev_me'));
+
+    await relay.closeSocket('dev_me', code: 4409);
+    await until(() => ws.lastCloseCode == 4409);
+    // Não deve tentar reconectar: dá tempo e confirma que ninguém reabriu a conexão.
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(relay.sockets.containsKey('dev_me'), isFalse);
+    expect(ws.reconnectAttempts, 0);
+    expect(await ws.watchConnection().first, ConnectionState.offline);
+  });
+
+  test(
+    'duas chamadas concorrentes de connect() abrem só uma conexão',
+    () async {
+      make();
+      final states = <ConnectionState>[];
+      ws.watchConnection().listen(states.add);
+      await Future.wait([ws.connect(), ws.connect()]);
+      await until(
+        () => states.isNotEmpty && states.last == ConnectionState.online,
+      );
+      // Só uma conexão real chegou ao relay (senão a 2ª derrubaria a 1ª com 4409).
+      expect(relay.sockets.length, 1);
+      expect(relay.log.where((l) => l == 'GET /v1/ws').length, 1);
+      expect(
+        ws.lastCloseCode,
+        isNull,
+        reason: 'nunca foi derrubada por si mesma',
+      );
     },
   );
 }
