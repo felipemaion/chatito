@@ -1,3 +1,4 @@
+import 'package:async/async.dart';
 import 'package:drift/drift.dart';
 
 import '../domain/models.dart';
@@ -158,7 +159,14 @@ class ChatDatabase extends _$ChatDatabase {
         messages.id.equalsExp(conversations.lastMessageId),
       ),
     ])..orderBy([OrderingTerm.desc(conversations.updatedAt)]);
-    return q.watch().asyncMap((rows) async {
+    // Também reage a mudanças em `attachments` (ex.: download concluído do
+    // `lastMessage`), que a query acima não referencia diretamente.
+    final triggers = StreamGroup.merge([
+      q.watch(),
+      select(attachments).watch(),
+    ]);
+    return triggers.asyncMap((_) async {
+      final rows = await q.get();
       final out = <Conversation>[];
       for (final row in rows) {
         final m = row.readTableOrNull(messages);
@@ -247,7 +255,14 @@ class ChatDatabase extends _$ChatDatabase {
     final q = select(messages)
       ..where((t) => t.convId.equals(convId))
       ..orderBy([(t) => OrderingTerm.asc(t.sentAt)]);
-    return q.watch().asyncMap((rows) => Future.wait(rows.map(_toMessage)));
+    // Idem: anexos baixados depois não mudam a tabela `messages`.
+    final triggers = StreamGroup.merge([
+      q.watch(),
+      select(attachments).watch(),
+    ]);
+    return triggers.asyncMap(
+      (_) async => Future.wait((await q.get()).map(_toMessage)),
+    );
   }
 
   Future<Message?> messageById(String id) async {

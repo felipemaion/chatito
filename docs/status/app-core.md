@@ -21,8 +21,15 @@
   Testes contra `test/support/fake_relay.dart` (relay em memória que fala o protocolo v1 — reutilizável
   pelo app-ui/integração).
 
-## Em andamento
-- [ ] 6. `lib/domain` real: casos de uso + `RealChatFacade`.
+- [x] 6. `lib/domain` real — casos de uso (`Onboarding`, `DirectorySync`, `SendMessage` com outbox/fan-out
+  e drain, `ReceiveEnvelope` com open/persistir/ack implícito, `Files` para envio/recebimento cifrado) e
+  `RealChatFacade` implementando a interface documentada abaixo. Teste de ponta a ponta
+  (`test/domain/real_chat_facade_test.dart`) com 2+ peers reais, relay fake e libsodium de verdade:
+  onboarding, mensagens 1:1 e grupo (fan-out para os próprios devices), offline/outbox, recibos
+  delivered/read, safety number, key_change (diretório e payload), dedupe por `msg_id`, arquivos
+  (cifra/decifra/cache) e reconexão.
+
+## Todas as entregas do escopo concluídas
 
 ## Bloqueios
 - **CI (infra):** testes de `crypto` rodam na VM com o pacote `sodium` e precisam de `libsodium` nativo.

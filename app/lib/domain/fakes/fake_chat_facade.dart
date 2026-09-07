@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import '../../protocol/protocol.dart';
 import '../chat_facade.dart';
+import '../observable.dart';
 import '../models.dart';
 
 /// Implementação em memória, determinística, para o app-ui trabalhar antes da
@@ -51,11 +52,11 @@ class FakeChatFacade implements ChatFacade {
     createdAt: DateTime.utc(2026, 9, 6, 18, 5),
   );
 
-  final _session = _Value<SessionState>(const NotRegistered());
-  final _connection = _Value<ConnectionState>(ConnectionState.offline);
-  final _contacts = _Value<List<Contact>>(const []);
-  final _conversations = _Value<List<Conversation>>(const []);
-  final _messages = <String, _Value<List<Message>>>{};
+  final _session = Observable<SessionState>(const NotRegistered());
+  final _connection = Observable<ConnectionState>(ConnectionState.offline);
+  final _contacts = Observable<List<Contact>>(const []);
+  final _conversations = Observable<List<Conversation>>(const []);
+  final _messages = <String, Observable<List<Message>>>{};
   final _blobs = <String, Uint8List>{};
   final _timers = <Timer>[];
 
@@ -291,8 +292,8 @@ class FakeChatFacade implements ChatFacade {
   String _nextId(String prefix) =>
       '${prefix}_${(++_seq).toString().padLeft(4, '0')}';
 
-  _Value<List<Message>> _messagesOf(String convId) =>
-      _messages.putIfAbsent(convId, () => _Value<List<Message>>(const []));
+  Observable<List<Message>> _messagesOf(String convId) =>
+      _messages.putIfAbsent(convId, () => Observable<List<Message>>(const []));
 
   Conversation _conversation(String convId) {
     final c = _conversations.value.where((c) => c.id == convId).firstOrNull;
@@ -424,28 +425,4 @@ class FakeChatFacade implements ChatFacade {
     }
     _now = t0.add(const Duration(minutes: 20));
   }
-}
-
-/// Valor observável: `stream` emite o valor atual ao ouvir e cada mudança.
-class _Value<T> {
-  _Value(this._value);
-
-  T _value;
-  final _controller = StreamController<T>.broadcast();
-
-  T get value => _value;
-
-  set value(T v) {
-    _value = v;
-    if (!_controller.isClosed) _controller.add(v);
-  }
-
-  bool get isClosed => _controller.isClosed;
-
-  Stream<T> get stream async* {
-    yield _value;
-    yield* _controller.stream;
-  }
-
-  Future<void> close() => _controller.close();
 }
