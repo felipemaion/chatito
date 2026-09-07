@@ -10,7 +10,7 @@ class SecureKeyStore extends MapKeyStore {
           const FlutterSecureStorage(
             // macOS: o keychain de proteção de dados exige assinatura com Team ID;
             // fora da App Store (assinatura ad-hoc) só o keychain clássico funciona.
-            mOptions: MacOsOptions(useDataProtectionKeychain: false),
+            mOptions: MacOsOptions(usesDataProtectionKeychain: false),
           );
 
   final FlutterSecureStorage _storage;
