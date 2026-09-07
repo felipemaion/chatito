@@ -31,12 +31,16 @@ void main() {
   RelayWs make({
     Future<void> Function(Envelope)? onEnvelope,
     Duration base = const Duration(milliseconds: 30),
+    // Bem maior que qualquer teste existente, para o watchdog nunca disparar
+    // sozinho nos testes que não são sobre ele.
+    Duration staleTimeout = const Duration(seconds: 5),
   }) => ws = RelayWs(
     baseUrl: relay.baseUrl,
     token: token,
     onEnvelope: onEnvelope ?? (e) async => received.add(e),
     backoffBase: base,
     backoffMax: const Duration(milliseconds: 200),
+    staleTimeout: staleTimeout,
   );
 
   Future<void> until(
@@ -350,4 +354,59 @@ void main() {
       );
     },
   );
+
+  test(
+    'handshake que nunca completa: watchdog derruba e reconecta sozinho',
+    () async {
+      relay.holdHandshake = true;
+      final states = <ConnectionState>[];
+      make(staleTimeout: const Duration(milliseconds: 120));
+      ws.watchConnection().listen(states.add);
+      await ws.connect();
+
+      // O upgrade HTTP→WS completa, mas o relay nunca manda `hello`: fica
+      // preso em "connecting" até o watchdog agir.
+      await until(
+        () => relay.heldSockets.containsKey('dev_me'),
+        reason: 'upgrade aconteceu',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(states.last, ConnectionState.connecting);
+      expect(
+        relay.sockets.containsKey('dev_me'),
+        isFalse,
+        reason: 'nunca chegou a "vivo" para o relay',
+      );
+
+      // A partir daqui o relay volta a responder normalmente.
+      relay.holdHandshake = false;
+      await until(
+        () => states.last == ConnectionState.online,
+        timeout: const Duration(seconds: 3),
+        reason: 'watchdog forçou nova tentativa e desta vez completou',
+      );
+    },
+  );
+
+  test('socket some silenciosamente (sem close nem error): watchdog detecta e reconecta', () async {
+    final states = <ConnectionState>[];
+    make(staleTimeout: const Duration(milliseconds: 120));
+    ws.watchConnection().listen(states.add);
+    await ws.connect();
+    await until(() => states.last == ConnectionState.online);
+
+    relay.vanish('dev_me');
+    // Nenhum evento chega ao cliente (nem onDone, nem onError) — só o
+    // watchdog por falta de atividade pode detectar isso.
+    await until(
+      () => states.where((s) => s == ConnectionState.online).length >= 2,
+      timeout: const Duration(seconds: 3),
+      reason: 'watchdog percebeu a inatividade e reconectou',
+    );
+    expect(
+      ws.lastCloseCode,
+      isNull,
+      reason: 'nunca houve close code — o socket só sumiu',
+    );
+  });
 }

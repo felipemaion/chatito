@@ -33,6 +33,11 @@ abstract interface class KeyStore {
   Future<IdentityKeyPair?> readIdentity();
   Future<void> writeIdentity(IdentityKeyPair keyPair);
 
+  /// Remove só a identidade (chaves), sem tocar token/sessão. Usado quando o
+  /// onboarding grava a chave mas o registro no servidor falha depois —
+  /// não deve sobrar identidade órfã no keychain.
+  Future<void> deleteIdentity();
+
   Future<String?> readToken();
   Future<void> writeToken(String token);
 
@@ -69,6 +74,12 @@ abstract class MapKeyStore implements KeyStore {
   Future<void> writeIdentity(IdentityKeyPair keyPair) async {
     await write(_identityPk, base64.encode(keyPair.publicKey));
     await write(_identitySk, base64.encode(keyPair.secretKey));
+  }
+
+  @override
+  Future<void> deleteIdentity() async {
+    await delete(_identityPk);
+    await delete(_identitySk);
   }
 
   @override
