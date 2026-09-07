@@ -20,7 +20,10 @@ import 'use_cases/send_message.dart';
 
 /// Implementação real do [ChatFacade]: crypto + storage + transport.
 ///
-/// Chame [init] após construir para restaurar a sessão do [KeyStore].
+/// O carregamento da sessão do [KeyStore] começa sozinho na construção;
+/// qualquer método que precise dela espera esse carregamento terminar antes
+/// de decidir (nunca lança `not_registered` só porque foi chamado cedo
+/// demais). Chamar [init] continua funcionando, mas não é mais necessário.
 class RealChatFacade implements ChatFacade {
   RealChatFacade({
     required CryptoBox cryptoBox,
@@ -52,6 +55,19 @@ class RealChatFacade implements ChatFacade {
     _sender = SendMessage(_ctx);
     _receiver = ReceiveEnvelope(_ctx, _directory, _sender);
     _files = Files(_ctx, _cache, _sender);
+    // Começa a carregar a sessão do KeyStore já na construção — nunca fica
+    // pendente de alguém lembrar de chamar `init()` antes de usar a fachada.
+    // Bug de campo: a UI (observador de conectividade) chamava `connect()`
+    // logo depois de construir, antes desse carregamento terminar; `_require`
+    // via `_active == null` e lançava `not_registered` como exceção não
+    // tratada, e o app nunca conectava. Todo método que depende de sessão
+    // agora espera [_ready] antes de decidir (ver [_requireReady]).
+    _ready = _loadInitialSession();
+  }
+
+  Future<void> _loadInitialSession() async {
+    final s = await _onboarding.restore();
+    if (s != null) _setActive(s);
   }
 
   final void Function(String) _log;
@@ -65,6 +81,11 @@ class RealChatFacade implements ChatFacade {
   late final ReceiveEnvelope _receiver;
   late final Files _files;
 
+  /// Completa quando a sessão persistida (ou a ausência dela) já foi
+  /// carregada do [KeyStore] — todo método que usa [_require] espera por
+  /// isto primeiro (ver [_requireReady]).
+  late final Future<void> _ready;
+
   ActiveSession? _active;
   RelayWs? _ws;
   StreamSubscription<ConnectionState>? _wsStateSub;
@@ -75,13 +96,10 @@ class RealChatFacade implements ChatFacade {
 
   ConnectionState get currentConnection => _connection.value;
 
-  /// Restaura a sessão persistida (sem rede). Idempotente.
-  Future<void> init() async {
-    final s = await _onboarding.restore();
-    if (s != null) {
-      _setActive(s);
-    }
-  }
+  /// O carregamento inicial já começa sozinho na construção; chamar isto não
+  /// é mais necessário, mas continua funcionando (idempotente) para quem já
+  /// chamava antes de usar o resto da fachada.
+  Future<void> init() => _ready;
 
   // ── Sessão ────────────────────────────────────────────────────────────────
   @override
@@ -96,6 +114,10 @@ class RealChatFacade implements ChatFacade {
     required String deviceName,
     required String platform,
   }) async {
+    // Espera o carregamento inicial terminar antes de registrar, para não
+    // correr o risco de `_loadInitialSession` sobrescrever `_active` com uma
+    // sessão velha do KeyStore depois que o registro novo já rodou.
+    await _ready;
     final s = await _onboarding.register(
       inviteCode: inviteCode,
       deviceName: deviceName,
@@ -117,37 +139,60 @@ class RealChatFacade implements ChatFacade {
     return s;
   }
 
+  /// Como [_require], mas espera o carregamento inicial da sessão terminar
+  /// primeiro — só lança `not_registered` se, depois disso, ainda não houver
+  /// sessão de verdade. Use em todo método que depende de sessão.
+  Future<ActiveSession> _requireReady() async {
+    await _ready;
+    return _require();
+  }
+
   // ── Conexão ───────────────────────────────────────────────────────────────
   @override
   Stream<ConnectionState> watchConnection() => _connection.stream;
 
   @override
   Future<void> connect() async {
-    final s = _require();
-    if (_ws == null) {
-      final token = await _ctx.keyStore.readToken();
-      if (token == null) {
-        throw const ChatException('not_registered', 'sem token');
-      }
-      final ws = RelayWs(
-        baseUrl: _ctx.api.baseUrl,
-        token: token,
-        onEnvelope: (e) => _receiver.handle(s, e),
-        backoffBase: wsBackoffBase,
-        backoffMax: wsBackoffMax,
-        log: _log,
-      );
-      _wsStateSub = ws.watchConnection().listen((st) {
-        _connection.value = st;
-        if (st == ConnectionState.online) {
-          unawaited(_afterOnline(s));
-        }
-      });
-      _wsErrSub = ws.errors.listen((e) => _log('ws: $e'));
-      _ws = ws;
-    }
-    await _ws!.connect();
+    final s = await _requireReady();
+    final ws = await _ensureWs(s);
+    await ws.connect();
     unawaited(_sender.drain());
+  }
+
+  @override
+  Future<void> ensureConnected() async {
+    final s = await _requireReady();
+    final ws = await _ensureWs(s);
+    await ws.ensureConnected();
+    unawaited(_sender.drain());
+  }
+
+  /// Cria o [RelayWs] (com o token do [KeyStore]) na 1ª chamada; devolve o
+  /// mesmo depois. Compartilhado por [connect] e [ensureConnected].
+  Future<RelayWs> _ensureWs(ActiveSession s) async {
+    final existing = _ws;
+    if (existing != null) return existing;
+    final token = await _ctx.keyStore.readToken();
+    if (token == null) {
+      throw const ChatException('not_registered', 'sem token');
+    }
+    final ws = RelayWs(
+      baseUrl: _ctx.api.baseUrl,
+      token: token,
+      onEnvelope: (e) => _receiver.handle(s, e),
+      backoffBase: wsBackoffBase,
+      backoffMax: wsBackoffMax,
+      log: _log,
+    );
+    _wsStateSub = ws.watchConnection().listen((st) {
+      _connection.value = st;
+      if (st == ConnectionState.online) {
+        unawaited(_afterOnline(s));
+      }
+    });
+    _wsErrSub = ws.errors.listen((e) => _log('ws: $e'));
+    _ws = ws;
+    return ws;
   }
 
   Future<void> _afterOnline(ActiveSession s) async {
@@ -169,11 +214,12 @@ class RealChatFacade implements ChatFacade {
   Stream<List<Contact>> watchContacts() => _ctx.db.watchContacts();
 
   @override
-  Future<void> refreshDirectory() => _directory.refresh(_require());
+  Future<void> refreshDirectory() async =>
+      _directory.refresh(await _requireReady());
 
   @override
   Future<SafetyNumber> safetyNumber(String deviceId) async {
-    final s = _require();
+    final s = await _requireReady();
     final other = await _ctx.db.deviceById(deviceId);
     if (other == null) {
       throw const ChatException('not_found', 'device desconhecido');
@@ -199,7 +245,7 @@ class RealChatFacade implements ChatFacade {
 
   @override
   Future<Conversation> openDirect(String userId) async {
-    final s = _require();
+    final s = await _requireReady();
     if (await _ctx.db.userById(userId) == null) {
       throw const ChatException('not_found', 'usuário desconhecido');
     }
@@ -208,7 +254,7 @@ class RealChatFacade implements ChatFacade {
 
   @override
   Future<void> sendText(String convId, String body) async {
-    final s = _require();
+    final s = await _requireReady();
     if (body.isEmpty) {
       throw const ChatException('validation', 'texto vazio');
     }
@@ -244,8 +290,8 @@ class RealChatFacade implements ChatFacade {
     required int size,
     required Stream<List<int>> data,
     String? caption,
-  }) => _files.send(
-    _require(),
+  }) async => _files.send(
+    await _requireReady(),
     convId,
     name: name,
     mime: mime,
@@ -258,14 +304,14 @@ class RealChatFacade implements ChatFacade {
   Stream<List<int>> readAttachment({
     required String messageId,
     required String blobId,
-  }) {
-    _require();
-    return _files.read(blobId);
+  }) async* {
+    await _requireReady();
+    yield* _files.read(blobId);
   }
 
   @override
   Future<void> markRead(String convId) async {
-    final s = _require();
+    final s = await _requireReady();
     final ids = await _ctx.db.markRead(convId);
     for (final id in ids) {
       final m = await _ctx.db.messageById(id);

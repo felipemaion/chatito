@@ -474,14 +474,21 @@ class FakeRelay {
       heldSockets[me.id] = ws;
       return;
     }
-    final old = sockets[me.id];
+    await _activate(me.id, ws);
+  }
+
+  /// Termina de "ativar" um socket já upgradado: derruba a conexão anterior
+  /// do mesmo device (4409), manda `hello` + pendentes e começa a escutar.
+  /// Extraído de [_ws] para ser reusado por [releaseHeld].
+  Future<void> _activate(String deviceId, WebSocket ws) async {
+    final old = sockets[deviceId];
     if (old != null) {
       await old.close(4409);
     }
-    sockets[me.id] = ws;
-    final pending = queues[me.id] ?? const <Envelope>[];
+    sockets[deviceId] = ws;
+    final pending = queues[deviceId] ?? const <Envelope>[];
     ws.add(
-      jsonEncode(WsHello(deviceId: me.id, pending: pending.length).toJson()),
+      jsonEncode(WsHello(deviceId: deviceId, pending: pending.length).toJson()),
     );
     for (final e in pending) {
       ws.add(jsonEncode(WsEnvelope(e).toJson()));
@@ -491,10 +498,10 @@ class FakeRelay {
         final frame = WsFrame.fromJson(
           jsonDecode(data as String) as Map<String, dynamic>,
         );
-        log.add('ws ${me.id} ← ${frame.type}');
+        log.add('ws $deviceId ← ${frame.type}');
         switch (frame) {
           case WsAck(:final ids):
-            queues[me.id]?.removeWhere((e) => ids.contains(e.id));
+            queues[deviceId]?.removeWhere((e) => ids.contains(e.id));
           case WsPing():
             ws.add(jsonEncode(const WsPong().toJson()));
           default:
@@ -502,11 +509,30 @@ class FakeRelay {
         }
       },
       onDone: () {
-        if (sockets[me.id] == ws) {
-          sockets.remove(me.id);
+        if (sockets[deviceId] == ws) {
+          sockets.remove(deviceId);
         }
       },
       onError: (_) {},
+    );
+  }
+
+  /// Libera um socket que ficou preso por [holdHandshake]: manda `hello` (e
+  /// pendentes) e começa a escutar, como se o "handshake" tivesse acabado de
+  /// completar agora — só que atrasado. Simula um handshake lento em vez de
+  /// travado para sempre.
+  Future<void> releaseHeld(String deviceId) async {
+    final ws = heldSockets.remove(deviceId);
+    if (ws == null) return;
+    // De propósito, não mexe em `sockets`/não derruba a conexão atual do
+    // device: o ponto do teste é uma resposta atrasada que não deveria mais
+    // importar (o cliente, do seu lado, já abriu outra geração antes disso).
+    // Se nada mais estiver escutando `ws` (nenhum `.listen` foi chamado
+    // enquanto estava em `heldSockets`), o `add` só entrega ao stream do
+    // cliente do outro lado do socket — é o que o teste quer observar.
+    final pending = queues[deviceId] ?? const <Envelope>[];
+    ws.add(
+      jsonEncode(WsHello(deviceId: deviceId, pending: pending.length).toJson()),
     );
   }
 

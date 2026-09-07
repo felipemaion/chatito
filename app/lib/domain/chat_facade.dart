@@ -20,6 +20,14 @@ abstract interface class ChatFacade {
 
   /// Abre o WS (reconexão automática) e drena a outbox. Idempotente.
   Future<void> connect();
+
+  /// Como [connect], mas nunca fica de refém de uma tentativa travada ou de
+  /// um backoff em andamento: se a conexão atual está presa há tempo demais,
+  /// ou há um retry agendado, cancela e tenta de novo na hora. Pensado para
+  /// sinais explícitos de que vale a pena tentar agora (botão "reconectar",
+  /// app voltando de segundo plano, rede voltando).
+  Future<void> ensureConnected();
+
   Future<void> disconnect();
 
   // ── Diretório ─────────────────────────────────────────────────────────────

@@ -31,9 +31,10 @@ void main() {
   RelayWs make({
     Future<void> Function(Envelope)? onEnvelope,
     Duration base = const Duration(milliseconds: 30),
-    // Bem maior que qualquer teste existente, para o watchdog nunca disparar
-    // sozinho nos testes que não são sobre ele.
+    // Bem maior que qualquer teste existente, para o watchdog/ensureConnected
+    // nunca disparar sozinho nos testes que não são sobre eles.
     Duration staleTimeout = const Duration(seconds: 5),
+    Duration ensureConnectedGraceTime = const Duration(seconds: 5),
   }) => ws = RelayWs(
     baseUrl: relay.baseUrl,
     token: token,
@@ -41,6 +42,7 @@ void main() {
     backoffBase: base,
     backoffMax: const Duration(milliseconds: 200),
     staleTimeout: staleTimeout,
+    ensureConnectedGraceTime: ensureConnectedGraceTime,
   );
 
   Future<void> until(
@@ -159,8 +161,10 @@ void main() {
     expect(await ws.watchConnection().first, ConnectionState.offline);
   });
 
-  test('4409 (outra conexão do mesmo device) → não briga', () async {
+  test('4409 na geração atual: uma conexão de verdade tomou o lugar → reconecta (não desiste para sempre)', () async {
+    final states = <ConnectionState>[];
     make();
+    ws.watchConnection().listen(states.add);
     await ws.connect();
     await until(() => relay.sockets.containsKey('dev_me'));
     final second = RelayWs(
@@ -170,8 +174,13 @@ void main() {
     );
     await second.connect();
     await until(() => (ws.lastCloseCode ?? 0) == 4409);
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-    expect(await ws.watchConnection().first, ConnectionState.offline);
+    // Diferente de token inválido (4401): 4409 na geração atual não é
+    // motivo para desistir para sempre — outra conexão de verdade tomou o
+    // lugar, mas nada garante que ela vá durar; continuamos tentando.
+    await until(
+      () => states.where((s) => s == ConnectionState.connecting).length >= 2,
+      reason: 'voltou a tentar reconectar em vez de ficar offline pra sempre',
+    );
     await second.dispose();
   });
 
@@ -320,18 +329,16 @@ void main() {
     expect(ws.lastCloseCode, 1001);
   });
 
-  test('close 4409 simulado diretamente pelo relay: para de reconectar, sem outra conexão real', () async {
+  test('close 4409 simulado diretamente pelo relay: reconecta (não é motivo para desistir)', () async {
     make();
     await ws.connect();
     await until(() => relay.sockets.containsKey('dev_me'));
 
     await relay.closeSocket('dev_me', code: 4409);
     await until(() => ws.lastCloseCode == 4409);
-    // Não deve tentar reconectar: dá tempo e confirma que ninguém reabriu a conexão.
-    await Future<void>.delayed(const Duration(milliseconds: 200));
-    expect(relay.sockets.containsKey('dev_me'), isFalse);
-    expect(ws.reconnectAttempts, 0);
-    expect(await ws.watchConnection().first, ConnectionState.offline);
+    // Diferente de 4401 (token inválido): 4409 não é definitivo — tenta de
+    // novo com backoff normal em vez de ficar offline pra sempre.
+    await until(() => relay.sockets.containsKey('dev_me'), reason: 'reconectou sozinho');
   });
 
   test(
@@ -409,4 +416,103 @@ void main() {
       reason: 'nunca houve close code — o socket só sumiu',
     );
   });
+
+  test('handshake que só responde bem depois do grace time não pode virar a conexão viva (geração abandonada)', () async {
+    relay.holdHandshake = true;
+    final states = <ConnectionState>[];
+    make(ensureConnectedGraceTime: const Duration(milliseconds: 80));
+    ws.watchConnection().listen(states.add);
+    await ws.connect();
+    await until(
+      () => relay.heldSockets.containsKey('dev_me'),
+      reason: 'upgrade aconteceu, mas sem hello',
+    );
+    await Future<void>.delayed(
+      const Duration(milliseconds: 100),
+    ); // passa do grace time
+
+    relay.holdHandshake = false; // novas tentativas passam a responder normal
+    await ws.ensureConnected(); // abandona a 1ª geração, abre a 2ª na hora
+    await until(
+      () => states.last == ConnectionState.online,
+      reason: '2ª geração completou',
+    );
+    final transitionsWhenOnline = states.length;
+
+    // A 1ª geração enfim "responde" (atrasada) — não pode ressuscitar nada.
+    await relay.releaseHeld('dev_me');
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    expect(
+      states.last,
+      ConnectionState.online,
+      reason: 'segue online pela 2ª geração',
+    );
+    expect(
+      states.length,
+      transitionsWhenOnline,
+      reason: 'a geração velha não causou nenhuma transição de estado nova',
+    );
+  });
+
+  test(
+    '4409 numa geração já abandonada por ensureConnected é ignorado',
+    () async {
+      relay.holdHandshake = true;
+      final states = <ConnectionState>[];
+      make(ensureConnectedGraceTime: const Duration(milliseconds: 80));
+      ws.watchConnection().listen(states.add);
+      await ws.connect();
+      await until(() => relay.heldSockets.containsKey('dev_me'));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      relay.holdHandshake = false;
+      await ws.ensureConnected();
+      await until(() => states.last == ConnectionState.online);
+      final transitionsWhenOnline = states.length;
+
+      // 4409 direto na geração velha (a que ficou pendurada em heldSockets),
+      // não na conexão atual — não deve afetar nada.
+      await relay.heldSockets['dev_me']!.close(4409);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(states.last, ConnectionState.online);
+      expect(
+        states.length,
+        transitionsWhenOnline,
+        reason: '4409 de uma geração velha não gera nenhuma reação',
+      );
+      expect(
+        ws.lastCloseCode,
+        isNull,
+        reason: 'o close foi da geração velha, não da atual',
+      );
+    },
+  );
+
+  test(
+    'ensureConnected durante backoff conecta na hora (não espera o timer)',
+    () async {
+      final states = <ConnectionState>[];
+      make(base: const Duration(seconds: 10)); // backoff bem longo de propósito
+      ws.watchConnection().listen(states.add);
+      await ws.connect();
+      await until(() => states.last == ConnectionState.online);
+
+      await relay.closeSocket('dev_me', code: 1001); // agenda um retry de ~10s+
+      await until(() => states.last == ConnectionState.connecting);
+      expect(ws.reconnectAttempts, greaterThan(0));
+
+      final before = DateTime.now();
+      await ws.ensureConnected();
+      await until(
+        () => states.last == ConnectionState.online,
+        timeout: const Duration(seconds: 2),
+        reason: 'ensureConnected deveria ter conectado na hora',
+      );
+      expect(
+        DateTime.now().difference(before),
+        lessThan(const Duration(seconds: 2)),
+        reason: 'não pode ter esperado o backoff de ~10s',
+      );
+    },
+  );
 }
