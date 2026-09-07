@@ -51,6 +51,53 @@
   `flutter test` local, mas via container Linux com `dart test`, cobrindo os mesmos arquivos de teste).
 - `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
 
+## RelayWs — ensureConnected() com gerações (cancela tentativa travada/backoff)
+- `ensureConnected()` novo em `RelayWs` **e** no `ChatFacade`/`RealChatFacade`/`FakeChatFacade`
+  (era o bloqueio do app-ui em `ui/reconnect.dart` — já podem trocar `connect()` por
+  `ensureConnected()` lá). Diferença para `connect()`: nunca fica de refém de uma tentativa
+  travada (handshake que não completa) nem de um backoff em andamento — se a tentativa atual
+  já passou de `ensureConnectedGraceTime` (padrão 5s) ou há um retry agendado, cancela e abre
+  outra na hora.
+- Implementado com um contador de **geração**: cada tentativa de conexão carrega um número; os
+  callbacks dela (`_onData`/`_onError`/`_onDone`) se auto-descartam (e fecham o canal, se ainda
+  existir) se não forem mais a geração atual. Isso cobre exatamente os casos de teste pedidos:
+  um `hello` atrasado de uma tentativa abandonada nunca "ressuscita" a conexão; um 4409 numa
+  geração velha (causado por nós mesmos ao abandoná-la) é ignorado; um 4409 na geração **atual**
+  passou a reconectar em vez de desistir para sempre (mudança de comportamento — antes 4409
+  parava tudo, igual 4401; agora só 4401 é definitivo).
+- Achado real ao escrever os testes: fechar o canal abandonado (`sink.close()`) podia disparar o
+  `onDone` **dele mesmo**, síncrono ou via microtask, antes da geração ser incrementada —
+  corrigido incrementando a geração *antes* de fechar o canal velho.
+- Logs estruturados via `dart:developer log(name: 'chatito.ws')` (aparecem no logcat do Android,
+  tag `flutter`, e no Console.app do macOS) em cada transição — conectando/geração N, hello,
+  fechado com código+motivo, reagendando em Xms, ignorado por geração antiga, watchdog. Nunca
+  inclui conteúdo de mensagem nem o token. Motivo: a APK release não emitia nenhum log visível
+  (o callback `log:` antigo só é usado pelos testes, nada o conectava a um sink real).
+- Testes novos em `test/transport/relay_ws_test.dart` (4): handshake que só responde bem depois
+  do grace time (geração abandonada não pode ficar viva), 4409 numa geração velha (ignorado),
+  4409 na geração atual (reconecta — teste antigo atualizado), ensureConnected durante backoff
+  (conecta na hora, sem esperar o timer).
+
+## RealChatFacade — corrida no carregamento inicial da sessão (bug de campo)
+- **Relato** (visto por logcat Android e macOS): `connect()` era chamado pela UI (observador de
+  conectividade) ANTES de `RealChatFacade` terminar de carregar a sessão do `KeyStore`;
+  `_require()` via `_active == null` e lançava `not_registered` como exceção não tratada — o app
+  nunca conectava.
+- **Correção**: o carregamento da sessão (`_ready`) agora começa sozinho na construção (não
+  depende mais de alguém chamar `init()` antes de usar a fachada — `init()` continua existindo,
+  só que agora é `Future<void> init() => _ready;`, idempotente). Todo método que depende de
+  sessão (`connect`, `ensureConnected`, `refreshDirectory`, `safetyNumber`, `openDirect`,
+  `sendText`, `sendFile`, `readAttachment`, `markRead`, `register`) espera `_ready` primeiro
+  (`_requireReady()`), só lançando `not_registered` se, depois do carregamento, ainda não houver
+  sessão de verdade.
+- `ensureConnected()` adicionado ao `ChatFacade`/`RealChatFacade`/`FakeChatFacade` nesta mesma
+  entrega (delegando ao `RelayWs.ensureConnected()` novo, acima) — resolve o bloqueio do app-ui.
+- Testes novos: `test/domain/real_chat_facade_ready_test.dart` (5) — inclusive o cenário exato
+  do bug: `connect()` chamado logo após construir, com `KeyStore` já tendo identidade/token,
+  conecta sem lançar.
+- 127/127 testes verdes no total (via container Linux; `flutter test` local segue bloqueado
+  nesta máquina, já documentado).
+
 ## Onboarding — bug de robustez em campo (macOS): device órfão no servidor
 - **Relato**: registro completava no servidor e SÓ DEPOIS falhava ao gravar a chave privada no
   keychain (erro do SO), deixando um device órfão no servidor e o app sem token nem sessão.
