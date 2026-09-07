@@ -51,6 +51,17 @@
   `flutter test` local, mas via container Linux com `dart test`, cobrindo os mesmos arquivos de teste).
 - `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
 
+## RelayWs — testes de queda/corrida (fake_relay)
+- Testes novos em `test/transport/relay_ws_test.dart`: `closeSocket(code: 1001)` (queda de rede,
+  reconecta sozinho e zera tentativas), `closeSocket(code: 4409)` simulado direto pelo relay (sem
+  precisar de uma 2ª conexão real) e duas chamadas concorrentes de `connect()`.
+- **Bug real encontrado e corrigido**: `connect()` checava `_channel != null || _retry != null`
+  antes de abrir, mas esses campos só deixam de ser nulos **depois** do `await ch.ready` dentro de
+  `_open()` — duas chamadas concorrentes (ex.: `initState` + um retry externo) passavam a checagem
+  e abriam **duas conexões reais**, e a 2ª derrubava a 1ª com 4409 sozinha. Corrigido com um future
+  compartilhado (`_connecting`): a 2ª chamada aguarda a mesma tentativa em vez de abrir outra.
+- 112/112 testes verdes (validado via container Linux, mesmo procedimento de sempre nesta máquina).
+
 ## Fase 2 — integração real Go↔Dart (feito)
 - `app/test/integration/relay_integration_test.dart` (Dart puro): só roda se `RELAY_URL` existir, senão
   pula. Convite gerado sob demanda via `docker exec <container> /relay admin invite --user <nome>`
