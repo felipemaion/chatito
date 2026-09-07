@@ -274,7 +274,8 @@ void main() {
       // recibo delivered chega no Felipe (a conversa também tem o aviso de
       // key_change do refresh de diretório em twoRegistered, então filtramos
       // pelo texto em vez de usar `.single`).
-      Message sentByFelipe() => f.messages(direct.id).firstWhere((x) => x.kind == MessageKind.text);
+      Message sentByFelipe() =>
+          f.messages(direct.id).firstWhere((x) => x.kind == MessageKind.text);
       await until(
         () => sentByFelipe().status == MessageStatus.delivered,
         reason: 'delivered',
@@ -327,7 +328,10 @@ void main() {
       expect(f2.messages(ConvId.family).single.isMine, isTrue);
       // A Mãe manda recibo `delivered` para todos os devices do Felipe,
       // inclusive f2 (cópia própria): o status avança de sent para delivered.
-      expect(f2.messages(ConvId.family).single.status.index, greaterThanOrEqualTo(MessageStatus.sent.index));
+      expect(
+        f2.messages(ConvId.family).single.status.index,
+        greaterThanOrEqualTo(MessageStatus.sent.index),
+      );
       expect(
         f2.conversations.firstWhere((c) => c.id == ConvId.family).unreadCount,
         0,
@@ -353,9 +357,12 @@ void main() {
       relay.failNext['POST /v1/envelopes'] = 3;
       await f.facade.sendText(direct.id, 'sem rede');
       // A conversa também tem o aviso de key_change de twoRegistered.
-      Message sent() => f.messages(direct.id).firstWhere((x) => x.kind == MessageKind.text);
+      Message sent() =>
+          f.messages(direct.id).firstWhere((x) => x.kind == MessageKind.text);
       // `messages()` inscreve o stream na 1ª chamada; aguarda o 1º evento.
-      await until(() => f.messages(direct.id).any((x) => x.kind == MessageKind.text));
+      await until(
+        () => f.messages(direct.id).any((x) => x.kind == MessageKind.text),
+      );
       expect(sent().status, MessageStatus.pending);
       expect(await f.db.outboxCountFor(sent().id), 1);
       relay.failNext.clear();
@@ -420,7 +427,9 @@ void main() {
       // Chega junto com o aviso de key_change do refresh de diretório (novo
       // device do Felipe), então a lista tem 2 itens, não 1.
       await until(
-        () => m.messages(ConvId.direct(felipe.id, mae.id)).any((x) => x.body == 'do iPad'),
+        () => m
+            .messages(ConvId.direct(felipe.id, mae.id))
+            .any((x) => x.body == 'do iPad'),
         reason: 'mensagem do device novo',
       );
       expect(

@@ -284,7 +284,15 @@ void main() {
     });
 
     test('markAttachmentDownloaded reemite em uma inscrição já aberta de watchMessages', () async {
-      await db.upsertConversation(Conversation(id: ConvId.family, kind: ConversationKind.group, title: 'F', participantUserIds: const [me], updatedAt: DateTime.utc(2026)));
+      await db.upsertConversation(
+        Conversation(
+          id: ConvId.family,
+          kind: ConversationKind.group,
+          title: 'F',
+          participantUserIds: const [me],
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
       await db.insertMessage(
         Message(
           id: 'f2',
@@ -294,9 +302,22 @@ void main() {
           kind: MessageKind.file,
           sentAt: DateTime.utc(2026),
           isMine: false,
-          attachments: const [MessageAttachment(blobId: 'blob_2', name: 'b.jpg', size: 5, mime: 'image/jpeg')],
+          attachments: const [
+            MessageAttachment(
+              blobId: 'blob_2',
+              name: 'b.jpg',
+              size: 5,
+              mime: 'image/jpeg',
+            ),
+          ],
         ),
-        attachmentSecrets: {'blob_2': AttachmentSecret(key: Uint8List(32), header: Uint8List(24), chunkSize: 65536)},
+        attachmentSecrets: {
+          'blob_2': AttachmentSecret(
+            key: Uint8List(32),
+            header: Uint8List(24),
+            chunkSize: 65536,
+          ),
+        },
       );
       final snapshots = <List<Message>>[];
       final sub = db.watchMessages(ConvId.family).listen(snapshots.add);
@@ -308,30 +329,60 @@ void main() {
       expect(snapshots.last.single.attachments.single.downloaded, isTrue);
     });
 
-    test('markAttachmentDownloaded reemite em watchConversations (lastMessage)', () async {
-      await db.upsertConversation(Conversation(id: ConvId.family, kind: ConversationKind.group, title: 'F', participantUserIds: const [me], updatedAt: DateTime.utc(2026)));
-      await db.insertMessage(
-        Message(
-          id: 'f3',
-          convId: ConvId.family,
-          senderUserId: mae,
-          senderDeviceId: maeDev,
-          kind: MessageKind.file,
-          sentAt: DateTime.utc(2026),
-          isMine: false,
-          attachments: const [MessageAttachment(blobId: 'blob_3', name: 'c.jpg', size: 5, mime: 'image/jpeg')],
-        ),
-        attachmentSecrets: {'blob_3': AttachmentSecret(key: Uint8List(32), header: Uint8List(24), chunkSize: 65536)},
-      );
-      final snapshots = <List<Conversation>>[];
-      final sub = db.watchConversations().listen(snapshots.add);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      expect(snapshots.last.single.lastMessage!.attachments.single.downloaded, isFalse);
-      await db.markAttachmentDownloaded('blob_3', '/tmp/c.jpg');
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      await sub.cancel();
-      expect(snapshots.last.single.lastMessage!.attachments.single.downloaded, isTrue);
-    });
+    test(
+      'markAttachmentDownloaded reemite em watchConversations (lastMessage)',
+      () async {
+        await db.upsertConversation(
+          Conversation(
+            id: ConvId.family,
+            kind: ConversationKind.group,
+            title: 'F',
+            participantUserIds: const [me],
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await db.insertMessage(
+          Message(
+            id: 'f3',
+            convId: ConvId.family,
+            senderUserId: mae,
+            senderDeviceId: maeDev,
+            kind: MessageKind.file,
+            sentAt: DateTime.utc(2026),
+            isMine: false,
+            attachments: const [
+              MessageAttachment(
+                blobId: 'blob_3',
+                name: 'c.jpg',
+                size: 5,
+                mime: 'image/jpeg',
+              ),
+            ],
+          ),
+          attachmentSecrets: {
+            'blob_3': AttachmentSecret(
+              key: Uint8List(32),
+              header: Uint8List(24),
+              chunkSize: 65536,
+            ),
+          },
+        );
+        final snapshots = <List<Conversation>>[];
+        final sub = db.watchConversations().listen(snapshots.add);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(
+          snapshots.last.single.lastMessage!.attachments.single.downloaded,
+          isFalse,
+        );
+        await db.markAttachmentDownloaded('blob_3', '/tmp/c.jpg');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await sub.cancel();
+        expect(
+          snapshots.last.single.lastMessage!.attachments.single.downloaded,
+          isTrue,
+        );
+      },
+    );
   });
 
   group('outbox', () {
