@@ -1,0 +1,65 @@
+name: deploy
+
+# CD para o VPS Oracle (SERVER.md §8 no repo OracleServer): o Actions abre UMA conexão SSH e o
+# forced-command do user de deploy (chatito01) roda cron/deploy.sh no servidor
+# (git reset em origin/main + docker compose up -d --build + gate de health).
+#
+# Regras do servidor:
+#   - host key fixa no secret DEPLOY_KNOWN_HOSTS — NUNCA ssh-keyscan em runtime
+#     (fail2ban conta conexões preauth e bane o IP do runner)
+#   - SSH nativo, sem actions de terceiros (appleboy tem bug com múltiplas host keys)
+on:
+  push:
+    branches: [main]
+    paths: ['server/**', 'docker/**', 'cron/**', '.github/workflows/deploy.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy via SSH (forced-command)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          for v in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Secret $v ausente no environment 'production'."
+              exit 1
+            fi
+          done
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          # O comando remoto é ignorado pelo forced-command — "deploy" é placeholder.
+          # O gate é o marcador impresso pelo cron/deploy.sh (===DEPLOY_OK===), além do exit code.
+          ssh -i ~/.ssh/deploy_key \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 \
+            "$DEPLOY_USER@$DEPLOY_HOST" deploy | tee deploy.log
+          grep -q '===DEPLOY_OK===' deploy.log
+
+      - name: Smoke test externo
+        env:
+          SITE_URL: ${{ secrets.PRODUCTION_SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "PRODUCTION_SITE_URL não configurado — pulando smoke externo (DNS ainda não aponta?)."
+            exit 0
+          fi
+          curl -fsS --retry 3 --retry-delay 5 "$SITE_URL/healthz" | grep -q '"status":"ok"'

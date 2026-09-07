@@ -1,4 +1,5 @@
 # Desenvolvimento local: docker compose -f docker/docker-compose.dev.yml up --build
+name: chatito
 services:
   relay:
     build: { context: .., dockerfile: docker/Dockerfile }

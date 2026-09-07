@@ -1,15 +1,75 @@
 #!/usr/bin/env bash
-# Alvo do forced-command do user de deploy (SERVER.md §2/§8). Roda como <APP_USER> em /home/<DOMINIO>.
+# Deploy no VPS Oracle — alvo do forced-command da chave de deploy (SERVER.md §2/§8 no repo
+# OracleServer). O GitHub Actions só abre 1 conexão SSH; este script faz todo o trabalho no
+# servidor como <APP_USER> (chatito01): git reset em origin/main + compose build + gate de health.
+#
+# Instalação (uma vez, como operador) — linha do authorized_keys do user de deploy:
+#   command="/home/<DOMINIO>/repo/cron/deploy.sh",no-port-forwarding,no-X11-forwarding,\
+#   no-agent-forwarding,no-pty ssh-ed25519 AAAA... github-actions-deploy
+#
+# Variáveis (todas opcionais; sobrescritas nos testes bats em cron/test):
+#   CHATITO_REPO_DIR          raiz do checkout (padrão: pai deste script)
+#   CHATITO_DOMAIN            usado pelo compose (padrão: nome do diretório pai do repo)
+#   CHATITO_LOCK_FILE         arquivo de lock (padrão: /home/<DOMINIO>/deploy.lock)
+#   CHATITO_HEALTH_TIMEOUT_S  espera máxima pelo healthcheck (padrão: 180)
+#   CHATITO_SLEEP_S           intervalo entre checagens (padrão: 5)
 set -euo pipefail
-REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-LOCK=/tmp/chatito-deploy.lock
-exec 9>"$LOCK"; flock -n 9 || { echo "deploy já em andamento"; exit 1; }
-cd "$REPO_DIR"
+
+REPO_DIR="${CHATITO_REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+COMPOSE_FILE="docker/docker-compose.yml"
+BRANCH="main"
+CONTAINER="chatito-relay"
+HEALTH_TIMEOUT_S="${CHATITO_HEALTH_TIMEOUT_S:-180}"
+SLEEP_S="${CHATITO_SLEEP_S:-5}"
+# CHATITO_DOMAIN = nome do diretório /home/<DOMINIO>/ (pai de repo/), convenção SERVER.md §4.
 export CHATITO_DOMAIN="${CHATITO_DOMAIN:-$(basename "$(dirname "$REPO_DIR")")}"
-git fetch --quiet origin main && git reset --hard --quiet origin/main
-docker compose -f docker/docker-compose.yml up -d --build
-for i in $(seq 1 20); do
-  docker compose -f docker/docker-compose.yml exec -T relay /relay -healthcheck && { echo "===DEPLOY_OK==="; exit 0; }
-  sleep 3
+# Lock fora de data/ (pertence ao uid do container) e fora de /tmp (limpo no boot).
+LOCK_FILE="${CHATITO_LOCK_FILE:-$(dirname "$REPO_DIR")/deploy.lock}"
+
+log() { printf '[deploy %s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
+fail() {
+  log "$*"
+  log "últimas linhas de log de $CONTAINER:"
+  docker logs --tail 50 "$CONTAINER" || true
+  echo "===DEPLOY_FAIL==="
+  exit 1
+}
+
+# O comando remoto enviado pelo Actions é ignorado de propósito (forced-command).
+[ -n "${SSH_ORIGINAL_COMMAND:-}" ] && log "ignorando comando remoto: ${SSH_ORIGINAL_COMMAND}"
+
+# Serializa deploys concorrentes; o segundo falha rápido em vez de enfileirar builds.
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  log "outro deploy em andamento (lock: $LOCK_FILE) — abortando"
+  exit 1
+fi
+
+cd "$REPO_DIR"
+
+log "atualizando repo para origin/$BRANCH (domínio: $CHATITO_DOMAIN)"
+git fetch --quiet origin "$BRANCH"
+git reset --hard --quiet "origin/$BRANCH"
+log "HEAD: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"
+
+log "docker compose up -d --build"
+docker compose -f "$COMPOSE_FILE" up -d --build
+
+log "aguardando healthcheck de $CONTAINER (timeout ${HEALTH_TIMEOUT_S}s)"
+deadline=$((SECONDS + HEALTH_TIMEOUT_S))
+while true; do
+  status="$(docker inspect -f '{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null || echo unknown)"
+  case "$status" in
+    healthy) log "container healthy"; break ;;
+    unhealthy) fail "container UNHEALTHY" ;;
+  esac
+  if ((SECONDS >= deadline)); then
+    fail "timeout esperando health (status: $status)"
+  fi
+  sleep "$SLEEP_S"
 done
-echo "===DEPLOY_FAIL==="; docker compose -f docker/docker-compose.yml logs --tail=50 relay; exit 1
+
+# Camadas órfãs do build anterior; sem -a para preservar cache de stage.
+docker image prune -f >/dev/null || true
+log "deploy OK"
+echo "===DEPLOY_OK==="
