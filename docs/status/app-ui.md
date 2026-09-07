@@ -85,8 +85,28 @@
   erro) — removi a etapa de "abrir" do teste de widget (mantendo só o envio, que passou) e criei
   `test/platform/attachment_files_test.dart` (teste Dart puro, sem `flutter_test`) para cobrir
   `materializeAttachment` isoladamente, sem o risco de travar a suíte inteira.
+- **9. Segunda rodada via CI**: 154 passou / 4 falhou (todas em `chat_test.dart`, todas de teste, não de
+  produção). Causas confirmadas pelo log do runner (`ubuntu-latest`):
+  - **"A Timer is still pending even after the widget tree was disposed"** em "envia texto e limpa o
+    campo" e "Enter envia no desktop": `FakeChatFacade._scheduleReply` cria um `Timer` **de verdade**
+    mesmo com delay longo (não só com `Duration.zero`) — meu truque de "delay de 1 dia para não
+    interferir" deixava esse timer pendente, e `flutter_test` falha o teste se algo ficar agendado ao
+    final. Corrigido com `addTearDown(f.dispose)` em todo teste que usa a fake (`dispose()` cancela os
+    timers). **Isto é só do teste** — no app de verdade o processo continua vivo, não há "fim de teste".
+  - **"resposta automática..."** ainda falhava (`msgs.last` era a mensagem semeada antiga, não a minha):
+    faltava um `tester.pump()` entre `enterText` e o `tap` no botão de enviar — sem ele, o widget ainda
+    não tinha reconstruído com o texto novo, o botão seguia desabilitado (`onPressed: null`) e o toque
+    não fazia nada. Corrigido adicionando o `pump()` (mesmo padrão já usado em "envia texto...").
+  - **Timeout de 10 min em "anexar arquivo..." se repetiu** mesmo sem a etapa de abrir: I/O real de disco
+    (`dart:io`) trava sob o relógio falso (`FakeAsync`) que `flutter_test` usa para os widget tests —
+    problema conhecido do framework, não do `FakeChatFacade`/domínio. Corrigido envolvendo as partes com
+    I/O real (`tmp.writeAsBytes`, o `tap` em "anexar" + `pumpAndSettle`) em `tester.runAsync(...)`, que
+    roda esse trecho fora do relógio falso, com timers/E/S de verdade — solução documentada do próprio
+    `flutter_test` para este exato problema.
+  Nenhum ajuste foi necessário no `FakeChatFacade` do app-core nem no comportamento do domínio — as 4
+  falhas eram inteiramente de como eu escrevi os testes de widget.
 ## Em andamento
-- Push das correções acima; aguardando novo resultado do CI.
+- Push da 2ª rodada de correções; aguardando novo resultado do CI.
 ## Bloqueios
 - **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
   da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para

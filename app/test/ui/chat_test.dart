@@ -21,10 +21,14 @@ class _FakePicker implements FilePickerService {
   }
 }
 
-/// Sem resposta automática (delay bem longo) — para não interferir em testes
-/// que verificam a própria mensagem enviada.
-FakeChatFacade _seeded() =>
-    FakeChatFacade(autoReplyDelay: const Duration(days: 1));
+/// Sem resposta automática (delay bem longo, nunca dispara na janela do
+/// teste). `_scheduleReply` cria um `Timer` real mesmo com delay longo — por
+/// isso **todo** teste que usa isto precisa de `addTearDown(f.dispose)`, ou
+/// `flutter_test` falha com "A Timer is still pending" ao final do teste.
+FakeChatFacade _seeded() {
+  final f = FakeChatFacade(autoReplyDelay: const Duration(days: 1));
+  return f;
+}
 
 /// Com resposta automática imediata — só para o teste que exercita esse fluxo.
 FakeChatFacade _seededAutoReply() =>
@@ -45,6 +49,7 @@ void main() {
 
   testWidgets('abrir a conversa marca como lida', (tester) async {
     final f = _seeded();
+    addTearDown(f.dispose);
     await pumpScreen(tester, ChatScreen(convId: family), facade: f);
     final convs = await f.watchConversations().first;
     expect(convs.firstWhere((c) => c.id == family).unreadCount, 0);
@@ -52,6 +57,7 @@ void main() {
 
   testWidgets('envia texto e limpa o campo', (tester) async {
     final f = _seeded();
+    addTearDown(f.dispose);
     await pumpScreen(tester, ChatScreen(convId: family), facade: f);
     final send = find.byKey(const Key('send'));
     expect(tester.widget<IconButton>(send).onPressed, isNull);
@@ -74,6 +80,7 @@ void main() {
 
   testWidgets('Enter envia no desktop', (tester) async {
     final f = _seeded();
+    addTearDown(f.dispose);
     await pumpScreen(
       tester,
       ChatScreen(convId: family),
@@ -81,6 +88,7 @@ void main() {
       size: wideSize,
     );
     await tester.enterText(find.byKey(const Key('composer')), 'via enter');
+    await tester.pump();
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
     final msgs = await f.watchMessages(family).first;
@@ -98,8 +106,10 @@ void main() {
     'resposta automática chega com a conversa aberta e continua lida',
     (tester) async {
       final f = _seededAutoReply();
+      addTearDown(f.dispose);
       await pumpScreen(tester, ChatScreen(convId: direct), facade: f);
       await tester.enterText(find.byKey(const Key('composer')), 'oi mãe');
+      await tester.pump(); // habilita o botão de enviar antes do tap
       await tester.tap(find.byKey(const Key('send')));
       await tester.pumpAndSettle();
       final msgs = await f.watchMessages(direct).first;
@@ -111,12 +121,19 @@ void main() {
   );
 
   testWidgets('anexar arquivo envia e mostra como disponível', (tester) async {
-    final tmp = File(
-      '${Directory.systemTemp.path}/chatito_test_${DateTime.now().microsecondsSinceEpoch}.pdf',
-    );
-    await tmp.writeAsBytes(List.generate(4096, (i) => i % 256));
+    // I/O real de disco (`dart:io`) trava indefinidamente sob o relógio falso
+    // de `flutter_test` a menos que rode dentro de `runAsync` — sem isto o
+    // teste nunca termina (timeout de 10 min em CI).
+    late File tmp;
+    await tester.runAsync(() async {
+      tmp = File(
+        '${Directory.systemTemp.path}/chatito_test_${DateTime.now().microsecondsSinceEpoch}.pdf',
+      );
+      await tmp.writeAsBytes(List.generate(4096, (i) => i % 256));
+    });
     addTearDown(() => tmp.delete());
     final f = _seeded();
+    addTearDown(f.dispose);
     final picker = _FakePicker(
       PickedFile(
         path: tmp.path,
@@ -131,8 +148,10 @@ void main() {
       facade: f,
       overrides: [filePickerProvider.overrideWithValue(picker)],
     );
-    await tester.tap(find.byKey(const Key('attach')));
-    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('attach')));
+      await tester.pumpAndSettle();
+    });
     expect(picker.calls, 1);
     final msgs = await f.watchMessages(family).first;
     final last = msgs.last;
@@ -150,6 +169,7 @@ void main() {
 
   testWidgets('picker cancelado não envia nada', (tester) async {
     final f = _seeded();
+    addTearDown(f.dispose);
     final before = (await f.watchMessages(family).first).length;
     await pumpScreen(
       tester,
