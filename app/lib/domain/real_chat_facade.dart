@@ -66,8 +66,35 @@ class RealChatFacade implements ChatFacade {
   }
 
   Future<void> _loadInitialSession() async {
+    // ignore: avoid_print
+    print('[chatito.boot] restore: início');
     final s = await _onboarding.restore();
-    if (s != null) _setActive(s);
+    // ignore: avoid_print
+    print('[chatito.boot] restore: fim (sessão=${s != null})');
+    if (s == null) return;
+    _setActive(s);
+    // dispose() pode ter rodado entre a construção e aqui (raro, mas
+    // possível se o chamador descartar a fachada sem nunca usá-la) — não
+    // inicia nada em cima de uma fachada já descartada.
+    if (_disposed) return;
+    // Bug de boot (Android): quem chamaria connect() é o observador de
+    // conectividade (connectivity_plus) no app-ui, mas ele pode não emitir
+    // um evento inicial — nada mais conecta sozinho. Se já há sessão salva,
+    // conecta por conta própria assim que o carregamento termina, sem
+    // esperar ninguém pedir. Roda em segundo plano: não atrasa [_ready] (que
+    // é só sobre saber quem eu sou, não sobre estar online), e falhas de
+    // rede aqui não devem virar exceção não tratada. [dispose] espera esta
+    // tarefa (`_autoConnectTask`) para nunca deixar um `RelayWs` órfão sendo
+    // criado depois que a fachada já foi descartada.
+    _autoConnectTask = _autoConnect();
+  }
+
+  Future<void> _autoConnect() async {
+    try {
+      await connect();
+    } on Object catch (e) {
+      _log('autoConnect: $e');
+    }
   }
 
   final void Function(String) _log;
@@ -85,6 +112,11 @@ class RealChatFacade implements ChatFacade {
   /// carregada do [KeyStore] — todo método que usa [_require] espera por
   /// isto primeiro (ver [_requireReady]).
   late final Future<void> _ready;
+
+  /// A tarefa do autoConnect de boot, se ela chegou a começar (ver
+  /// [_loadInitialSession]). [dispose] espera por ela antes de seguir, para
+  /// nunca deixar um [RelayWs] sendo criado depois de já descartada.
+  Future<void>? _autoConnectTask;
 
   ActiveSession? _active;
   RelayWs? _ws;
@@ -342,6 +374,11 @@ class RealChatFacade implements ChatFacade {
       return;
     }
     _disposed = true;
+    // Espera o autoConnect de boot terminar antes de seguir: se ele ainda
+    // estivesse criando o RelayWs quando `_ws?.dispose()` rodasse, o WS
+    // nasceria depois, órfão, e continuaria tentando conectar (e mexendo no
+    // banco) mesmo com a fachada já descartada.
+    await _autoConnectTask;
     await _wsStateSub?.cancel();
     await _wsErrSub?.cancel();
     await _ws?.dispose();
