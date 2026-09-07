@@ -25,6 +25,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
       - run: flutter pub get
+      - name: google-services.json (push FCM — opcional)
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: '[ -n "$GS" ] && printf %s "$GS" | base64 -d > android/app/google-services.json || echo "sem GOOGLE_SERVICES_JSON_B64 — build sem push"'
       - name: Decidir modo de assinatura
         id: mode
         env:
@@ -39,7 +43,7 @@ jobs:
             echo "::warning::Secrets ANDROID_* ausentes — gerando APK debug (não instalável sobre um release assinado)."
             echo "signed=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Build APK release (assinado com a keystore dos secrets)
+      - name: Build APK release (assinado pelo Gradle via android/key.properties)
         if: steps.mode.outputs.signed == 'true'
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -50,17 +54,10 @@ jobs:
           umask 077
           KS_FILE="$RUNNER_TEMP/upload-keystore.jks"
           printf '%s' "$KS" | base64 -d > "$KS_FILE"
-          # key.properties é lido pelo build.gradle.kts quando o app o suportar; até lá o
-          # APK sai com a chave debug e é re-assinado abaixo com apksigner (v2+v3).
           printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
             "$KS_FILE" "$SPASS" "$ALIAS" "$KPASS" > android/key.properties
           flutter build apk --release
-          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
-          "$BT/apksigner" sign --ks "$KS_FILE" --ks-key-alias "$ALIAS" \
-            --ks-pass env:SPASS --key-pass env:KPASS \
-            --out "build/chatito-${GITHUB_REF_NAME}-android.apk" \
-            build/app/outputs/flutter-apk/app-release.apk
-          "$BT/apksigner" verify --print-certs "build/chatito-${GITHUB_REF_NAME}-android.apk" | head -3
+          cp build/app/outputs/flutter-apk/app-release.apk "build/chatito-${GITHUB_REF_NAME}-android.apk"
           rm -f "$KS_FILE" android/key.properties
       - name: Build APK debug (sem keystore)
         if: steps.mode.outputs.signed != 'true'
