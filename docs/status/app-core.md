@@ -31,6 +31,16 @@
 
 ## Todas as entregas do escopo concluídas
 
+## PR #4 — correções da revisão (aplicadas)
+- `RelayWs`: envelopes recebidos agora processam em fila FIFO sequencial (um por vez, na ordem
+  de chegada), não mais em paralelo sem controle. Loga quando o ack não pode ser enviado por
+  queda de conexão (relay reentrega ao reconectar). Ping/pong ficam fora da fila. Testes
+  novos em `test/transport/relay_ws_test.dart`.
+- `ReceiveEnvelope`: comentário no caso `key_change` deixando explícito que nenhum caso de uso
+  do app-core emite esse payload no v1 — a detecção é só local, em `DirectorySync.apply`
+  (compara `identity_key` do diretório antes/depois). O ramo existe por compatibilidade com
+  o protocolo, caso um peer futuro emita.
+
 ## Bloqueios
 - **CI (infra):** testes de `crypto` rodam na VM com o pacote `sodium` e precisam de `libsodium` nativo.
   Localmente: `brew install libsodium`. No `ci-app.yml` (ubuntu) falta `sudo apt-get install -y libsodium23`
