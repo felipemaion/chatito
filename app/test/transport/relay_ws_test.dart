@@ -193,4 +193,97 @@ void main() {
     );
     await until(() => received.length == 1);
   });
+
+  test(
+    'processa envelopes em sequência, um por vez, na ordem recebida',
+    () async {
+      var concurrent = 0;
+      var maxConcurrent = 0;
+      final order = <String>[];
+      make(
+        onEnvelope: (e) async {
+          concurrent++;
+          maxConcurrent = concurrent > maxConcurrent
+              ? concurrent
+              : maxConcurrent;
+          // O 1º envelope demora mais: se o processamento fosse paralelo, o 2º
+          // (mais rápido) terminaria antes dele.
+          await Future<void>.delayed(
+            Duration(milliseconds: order.isEmpty ? 60 : 5),
+          );
+          order.add(e.nonce);
+          concurrent--;
+        },
+      );
+      await ws.connect();
+      await until(() => relay.sockets.containsKey('dev_me'));
+      await relay.inject(
+        Envelope(toDevice: 'dev_me', nonce: 'n1', ciphertext: 'AA=='),
+        fromDevice: 'dev_peer',
+      );
+      await relay.inject(
+        Envelope(toDevice: 'dev_me', nonce: 'n2', ciphertext: 'AA=='),
+        fromDevice: 'dev_peer',
+      );
+      await relay.inject(
+        Envelope(toDevice: 'dev_me', nonce: 'n3', ciphertext: 'AA=='),
+        fromDevice: 'dev_peer',
+      );
+      await until(() => order.length == 3);
+      expect(order, ['n1', 'n2', 'n3']);
+      expect(maxConcurrent, 1);
+    },
+  );
+
+  test(
+    'handler bloqueado não atrasa o pong (ping é respondido fora da fila)',
+    () async {
+      final unlock = Completer<void>();
+      make(onEnvelope: (_) async => unlock.future);
+      await ws.connect();
+      await until(() => relay.sockets.containsKey('dev_me'));
+      await relay.inject(
+        Envelope(toDevice: 'dev_me', nonce: 'n', ciphertext: 'AA=='),
+        fromDevice: 'dev_peer',
+      );
+      relay.sendRaw('dev_me', const WsPing().toJson());
+      await until(() => relay.log.any((l) => l.contains('← pong')));
+      unlock.complete();
+    },
+  );
+
+  test(
+    'ack não enviado por conexão caída durante o processamento é logado',
+    () async {
+      final logs = <String>[];
+      final unlock = Completer<void>();
+      ws = RelayWs(
+        baseUrl: relay.baseUrl,
+        token: token,
+        onEnvelope: (_) => unlock.future,
+        log: logs.add,
+        // Backoff grande: garante que o teste não vê uma reconexão automática
+        // antes de conferir o log (o que trocaria _channel por um novo, não nulo).
+        backoffBase: const Duration(seconds: 30),
+      );
+      await ws.connect();
+      await until(() => relay.sockets.containsKey('dev_me'));
+      final injected = await relay.inject(
+        Envelope(toDevice: 'dev_me', nonce: 'n', ciphertext: 'AA=='),
+        fromDevice: 'dev_peer',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      // Derruba a conexão enquanto o handler ainda está preso.
+      await relay.closeSocket('dev_me', code: 1001);
+      await until(() => !relay.sockets.containsKey('dev_me'));
+      unlock.complete();
+      await until(
+        () => logs.any(
+          (l) => l.contains(injected.id!) && l.contains('conexão caída'),
+        ),
+      );
+      // O envelope continua pendente no relay (nunca foi ack'ado).
+      expect(relay.queues['dev_me'], hasLength(1));
+    },
+  );
 }

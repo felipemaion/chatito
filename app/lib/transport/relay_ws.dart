@@ -47,6 +47,12 @@ class RelayWs {
   final _stateCtl = StreamController<ConnectionState>.broadcast();
   final _errors = StreamController<RelayException>.broadcast();
 
+  /// Envelopes recebidos aguardando processamento sequencial (sem
+  /// backpressure não daria para garantir ordem nem limitar concorrência
+  /// quando vários chegam de uma vez, ex.: ao reconectar com pendentes).
+  final _queue = <Envelope>[];
+  bool _draining = false;
+
   /// Tentativas consecutivas de reconexão (zera ao conectar).
   int get reconnectAttempts => _attempts;
   int? get lastCloseCode => _lastCloseCode;
@@ -126,13 +132,30 @@ class RelayWs {
         _attempts = 0;
         _setState(ConnectionState.online);
       case WsEnvelope(:final envelope):
-        unawaited(_handle(envelope));
+        _queue.add(envelope);
+        unawaited(_drainQueue());
       case WsPing():
         _channel?.sink.add(jsonEncode(const WsPong().toJson()));
       case WsError(:final error):
         _errors.add(RelayException(error.code, error.message));
       case WsPong() || WsAck():
         break;
+    }
+  }
+
+  /// Processa a fila um envelope por vez, na ordem de chegada. Se já houver
+  /// um drain em andamento, esta chamada só garante que ele continue (a
+  /// função que o iniciou é a única que efetivamente consome a fila).
+  Future<void> _drainQueue() async {
+    if (_draining) return;
+    _draining = true;
+    try {
+      while (_queue.isNotEmpty) {
+        final envelope = _queue.removeAt(0);
+        await _handle(envelope);
+      }
+    } finally {
+      _draining = false;
     }
   }
 
@@ -143,7 +166,15 @@ class RelayWs {
       _log('handler falhou para ${envelope.id}: $e (sem ack)');
       return;
     }
-    if (envelope.id != null) await ack([envelope.id!]);
+    final id = envelope.id;
+    if (id == null) return;
+    if (_channel == null) {
+      _log(
+        'ack de $id não enviado: conexão caída (relay reenviará ao reconectar)',
+      );
+      return;
+    }
+    await ack([id]);
   }
 
   void _onError(Object e) {

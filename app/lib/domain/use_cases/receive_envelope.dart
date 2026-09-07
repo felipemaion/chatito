@@ -90,6 +90,11 @@ class ReceiveEnvelope {
               : MessageStatus.delivered,
         );
       case PayloadKind.keyChange:
+        // Nenhum caso de uso do app-core **emite** `key_change` no v1 — a
+        // detecção de troca de chave é só local (comparar `identity_key` do
+        // diretório antes/depois), feita em [DirectorySync.apply]. Este ramo
+        // existe para compatibilidade com o protocolo (PROTOCOL.md §5) caso
+        // um peer futuro venha a mandar o payload explicitamente.
         await _ensureConversation(session, payload.convId);
         final who = await _ctx.db.userById(senderUserId);
         await _ctx.db.insertMessage(
