@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /server
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "chore(deps)" }
+    groups:
+      go: { patterns: ["*"] }
+  - package-ecosystem: pub
+    directory: /app
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "chore(deps)" }
+    groups:
+      flutter: { patterns: ["*"] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "ci(deps)" }
+    groups:
+      actions: { patterns: ["*"] }
+  - package-ecosystem: docker
+    directory: /docker
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "chore(deps)" }
