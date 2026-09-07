@@ -51,6 +51,25 @@
   `flutter test` local, mas via container Linux com `dart test`, cobrindo os mesmos arquivos de teste).
 - `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
 
+## RealChatFacade — autoConnect no boot (bug de boot no Android)
+- **Relato**: quem chama `connect()` no boot é o observador de conectividade (`connectivity_plus`)
+  em `app_services.dart` do app-ui, reagindo a `onOnline` — mas esse callback pode não emitir um
+  evento inicial (só dispara em *mudanças* de estado). Se o device já estava online desde antes
+  de o app abrir, ninguém nunca chama `connect()`, e o app fica para sempre offline até a rede
+  mudar de estado por algum motivo.
+- **Correção**: `_loadInitialSession()` (chamada sozinha no construtor, ver entrega anterior)
+  agora, se restaurar uma sessão com token salvo, dispara `connect()` por conta própria em
+  segundo plano — sem esperar nenhum sinal externo. Falhas de rede nesse autoConnect só viram
+  log, nunca exceção não tratada.
+- **Bug encontrado ao testar**: como o autoConnect é fire-and-forget, havia uma corrida com
+  `dispose()` — se a fachada fosse descartada antes do autoConnect terminar de criar o `RelayWs`,
+  esse WS nascia **depois**, órfão (não descartado), e continuava tentando conectar e mexendo no
+  banco mesmo com a fachada já morta (`Bad state: Can't re-open a database after closing it` em
+  outro teste que fecha o banco). Corrigido guardando a tarefa do autoConnect
+  (`_autoConnectTask`) e fazendo `dispose()` esperar por ela antes de descartar o `RelayWs`.
+- Testes novos em `test/domain/real_chat_facade_ready_test.dart` (2): com sessão salva conecta
+  sozinha sem que ninguém chame `connect()`; sem sessão salva não tenta nada. 129/129 no total.
+
 ## RelayWs — ensureConnected() com gerações (cancela tentativa travada/backoff)
 - `ensureConnected()` novo em `RelayWs` **e** no `ChatFacade`/`RealChatFacade`/`FakeChatFacade`
   (era o bloqueio do app-ui em `ui/reconnect.dart` — já podem trocar `connect()` por
