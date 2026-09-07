@@ -127,8 +127,11 @@
     devolve um `Stream` em memória — confirmado no repro que isso roda instantâneo, sem tocar disco.
   Continua não havendo nenhuma mudança no `FakeChatFacade`/domínio do app-core.
 ## Em andamento
-- Push da 3ª rodada de correções (validadas por reprodução isolada em container, não pela suíte completa —
-  ver bloqueio de SDK acima); aguardando novo resultado do CI.
+- Push da 3ª rodada de correções feito (`db1112f`), mas o CI **não chegou a rodar**: as 3 execuções
+  disparadas por esse push falharam em segundos com "The job was not started because recent account
+  payments have failed or your spending limit needs to be increased" — bloqueio de faturamento do GitHub
+  Actions na conta, não relacionado a código. Nada a corrigir do meu lado; aguardando o orquestrador
+  resolver em Settings → Billing & plans do GitHub e disparar o CI de novo (push vazio ou re-run).
 ## Bloqueios
 - **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
   da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para
