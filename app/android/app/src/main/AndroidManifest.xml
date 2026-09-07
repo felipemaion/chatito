@@ -31,6 +31,12 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Rede: sem isto o app não alcança o relay em builds release (o
+         AndroidManifest de debug/profile já injeta INTERNET automaticamente
+         para desenvolvimento, mas o manifesto principal não tinha nenhuma
+         das duas). ACCESS_NETWORK_STATE é exigido pelo connectivity_plus. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
