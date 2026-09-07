@@ -1,12 +1,32 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Assinatura de release: lida de android/key.properties se existir (gerado pelo release.yml
+// a partir dos secrets ANDROID_*). Sem o arquivo, o release cai no signing de debug — não
+// distribuível, mas builda local sem segredo nenhum.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+val hasKeystoreProperties = keystorePropertiesFile.exists()
+if (hasKeystoreProperties) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+// Push Android (FCM data-only, PROTOCOL §4): plugin aplicado só se o arquivo do projeto
+// Firebase existir (docs/ops/FIREBASE.md); em dev/CI sem ele, o build segue normalmente.
+val googleServicesFile = file("google-services.json")
+if (googleServicesFile.exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "br.com.maion.chatito"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37 // flutter_secure_storage exige >= 37 (Flutter 3.47 usa 36 por padrão)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -29,11 +49,27 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasKeystoreProperties) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Com android/key.properties (release.yml, secrets ANDROID_*): assina com a
+            // keystore de upload. Sem ele: chave de debug — `flutter run --release` funciona,
+            // mas o APK não é distribuível (release.yml cai para --debug nesse caso).
+            signingConfig = if (hasKeystoreProperties) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

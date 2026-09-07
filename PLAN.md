@@ -2,7 +2,7 @@
 
 > Mensageiro privado da família (Felipe, filhos e a mãe deles). Clientes macOS, Windows e
 > Android. Servidor de relay **cego** (E2E) que guarda envelopes só até serem entregues.
-> Status: **aprovado em 2026-09-06 — Fase 0 concluída, Fase 1 em andamento (4 agentes).**
+> Status (2026-09-07): **Fases 0–2 concluídas** (infra, server, app-core, integração real Go↔Dart mesclados; app-ui em merge final). Próximo: tag `v0.1.0` (release), Fase 4 quando houver domínio.
 
 ---
 
