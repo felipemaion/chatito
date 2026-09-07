@@ -112,6 +112,9 @@ class FakeChatFacade implements ChatFacade {
   }
 
   @override
+  Future<void> ensureConnected() => connect();
+
+  @override
   Future<void> disconnect() async =>
       _connection.value = ConnectionState.offline;
 
