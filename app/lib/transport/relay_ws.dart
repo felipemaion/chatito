@@ -39,6 +39,7 @@ class RelayWs {
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _sub;
   Timer? _retry;
+  Future<void>? _connecting;
   bool _wanted = false;
   bool _disposed = false;
   int _attempts = 0;
@@ -63,12 +64,22 @@ class RelayWs {
     yield* _stateCtl.stream;
   }
 
-  /// Abre (ou mantém) a conexão. Idempotente.
+  /// Abre (ou mantém) a conexão. Idempotente, inclusive com chamadas
+  /// concorrentes: a 2ª nunca abre uma 2ª conexão real, só aguarda a 1ª
+  /// (`_channel`/`_retry` só passam a não-nulo depois que `_open` já terminou
+  /// o `await ch.ready`, então checá-los sozinho não bastava contra a corrida).
   Future<void> connect() async {
     if (_disposed) throw StateError('RelayWs já descartado');
     _wanted = true;
     if (_channel != null || _retry != null) return;
-    await _open();
+    if (_connecting != null) return _connecting;
+    final future = _open();
+    _connecting = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_connecting, future)) _connecting = null;
+    }
   }
 
   Future<void> disconnect() async {
