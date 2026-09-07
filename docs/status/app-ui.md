@@ -163,8 +163,44 @@
     só ver a tela de convite sem contexto.
   Testes: `test/ui/session_invalid_test.dart` (sessão fica inválida em segundo plano → onboarding com
   mensagem ao voltar; registrar de novo limpa a mensagem). Nenhuma mudança no domínio/app-core.
+- **13. Correção do item 12 — falso positivo confirmado por logcat.** `not_registered` na abertura do app
+  era **corrida de inicialização**, não sessão inválida de verdade: a UI chamava `connect()` antes de o
+  `RealChatFacade` terminar de carregar a sessão do `KeyStore` — com o código do item 12, isso mandava
+  qualquer usuário para o onboarding a cada abertura e criava um device novo, com a identidade real intacta
+  e abandonada. O app-core está fazendo `connect()`/`ensureConnected()` aguardarem esse carregamento
+  (`_ready`) do lado deles; do lado do app-ui, `ui/reconnect.dart` ganhou duas guardas antes de marcar
+  `sessionInvalidProvider`:
+  1. **Só age se `sessionProvider` já emitiu "registrado"** — `reconnectAndTrack` agora começa com
+     `if (!ref.read(sessionProvider).isRegistered) return;`, então nenhuma tentativa de `connect()` acontece
+     antes disso (nem no resume, nem no wake do push, nem no primeiro evento de conectividade — a mesma
+     guarda cobre os três, sem precisar tratar "1º evento" como caso especial e frágil).
+  2. **Confirmação por persistência**: a 1ª falha por `not_registered`/`unauthorized` não marca mais nada;
+     espera [`sessionInvalidRetryDelay`] (2 s) e tenta de novo — só marca `sessionInvalidProvider = true` se
+     a 2ª tentativa falhar do mesmo jeito. Uma falha isolada (a própria corrida, ou uma rede instável) não
+     manda mais ninguém para onboarding.
+  3. **Nunca apaga dados locais**: confirmado — nenhum código deste agente chama qualquer coisa parecida
+     com "esquecer sessão"/"apagar chaves"; a única ação em caso de sessão confirmada inválida é navegar
+     para `/onboarding` (o usuário decide se registra de novo). A `ChatFacade` também não expõe esse tipo de
+     método hoje.
+  Testes reescritos em `session_invalid_test.dart`: corrida de inicialização (sessão nunca confirma
+  registrado) não chama `connect()` nem mexe na flag; falha confirmada em 2 tentativas 2s apart manda para
+  onboarding; falha isolada/transitória (resolve antes da 2ª tentativa) não manda. Não pude rodar
+  `flutter test` nesta máquina (bloqueio de Xcode já documentado); a lógica de retry usa `Future.delayed`
+  puro (Timer virtualizável por `FakeAsync`/`tester.pump(duration)`), padrão bem estabelecido e diferente do
+  I/O real de disco que causou os travamentos dos itens 9/10 — validado só por `flutter analyze` e leitura
+  cuidadosa, não por reprodução em container desta vez.
+- **KeyStore de desktop (macOS/Windows) — confirmado já entregue.** `platform/secure_key_store.dart`
+  (`SecureKeyStore` sobre `flutter_secure_storage`) é usado sem condicional nenhuma em `main.dart` para
+  **todas** as plataformas buildadas neste projeto — não é um caminho só de Android. Os pacotes de
+  plataforma já estão resolvidos e registrados: `flutter_secure_storage_darwin` (Keychain no macOS) e
+  `flutter_secure_storage_windows` (Windows: **é literalmente arquivo cifrado com DPAPI** — o Windows não
+  tem um Keychain equivalente exposto; o plugin já implementa isso como arquivo no diretório de dados local
+  do app, cifrado pela API do próprio Windows). Linux **não é alvo deste projeto** (sem pasta `linux/`, fora
+  da lista de plataformas do `PLAN.md` — só macOS/Windows/Android); não criei nada lá. Não construí uma
+  implementação de arquivo própria/paralela: seria crypto caseira duplicando o que os plugins nativos já
+  fazem com mais segurança (contraria a regra do `CLAUDE.md` de só usar primitivas de alto nível prontas).
 ## Em andamento
-- (nada) — itens 11 e 12 commitados e com push feito no PR #3.
+- (nada) — itens 11, 12 e 13 commitados e com push feito.
 ## Bloqueios (atualização)
 - **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): as execuções mais recentes,
   incluindo a do item 11, falham em segundos com "recent account payments have failed or your spending
