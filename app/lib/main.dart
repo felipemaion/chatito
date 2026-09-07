@@ -9,6 +9,7 @@ import 'platform/file_key_store.dart';
 import 'platform/platform_info.dart';
 import 'platform/real_chat_facade_provider.dart';
 import 'platform/secure_key_store.dart';
+import 'platform/server_config.dart';
 import 'platform/window.dart';
 import 'storage/storage.dart';
 import 'ui/app.dart';
@@ -24,11 +25,20 @@ Future<void> main() async {
   final sodium = await SodiumInit.init();
   final db = ChatDatabase(driftDatabase(name: 'chatito'));
   final keyStore = await _openKeyStore(platform);
+  // Lida ANTES de montar a fachada: nunca conecta no endereço padrão de dev
+  // (inalcançável fora do emulador/desktop) se já existe uma URL salva de
+  // uma execução anterior — causa raiz confirmada em campo (logcat + nc) do
+  // "Conectando…" infinito nos celulares depois de reiniciar o app.
+  final savedServerUrl = await loadSavedServerUrl(keyStore);
 
   runApp(
     ProviderScope(
       overrides: [
         platformInfoProvider.overrideWithValue(platform),
+        savedServerUrlProvider.overrideWithValue(savedServerUrl),
+        serverUrlPersisterProvider.overrideWithValue(
+          (url) => saveServerUrl(keyStore, url),
+        ),
         chatDepsProvider.overrideWithValue(
           RealChatDeps(sodium: sodium, db: db, keyStore: keyStore),
         ),

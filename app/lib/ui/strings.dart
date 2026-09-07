@@ -11,6 +11,10 @@ abstract final class S {
   static const inviteCode = 'Código de convite';
   static const deviceName = 'Nome deste aparelho';
   static const serverUrl = 'Servidor';
+  static const invalidServerUrl =
+      'Endereço inválido. Use http:// ou https://host[:porta]';
+  static const serverNotConfigured = 'Servidor não configurado';
+  static const save = 'Salvar';
   static const register = 'Entrar';
   static const registering = 'Registrando…';
   static const required = 'Obrigatório';

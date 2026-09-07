@@ -44,7 +44,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _error = null);
     if (!_form.currentState!.validate()) return;
     setState(() => _busy = true);
-    ref.read(serverUrlProvider.notifier).set(_server.text.trim());
+    // Válida (o form já garantiu isso via `validator` abaixo) — persiste já
+    // aqui, antes de registrar, para o endereço digitado sobreviver a um
+    // reinício mesmo que o registro em si ainda não tenha terminado.
+    await commitServerUrl(ref, _server.text.trim());
     try {
       await ref
           .read(chatFacadeProvider)
@@ -162,10 +165,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     enabled: !_busy,
                     decoration: const InputDecoration(
                       labelText: S.serverUrl,
+                      hintText: 'http://192.168.0.10:8080',
                       prefixIcon: Icon(Icons.dns_outlined),
                     ),
-                    validator: (v) =>
-                        (v ?? '').trim().isEmpty ? S.required : null,
+                    validator: (v) {
+                      final trimmed = (v ?? '').trim();
+                      if (trimmed.isEmpty) return S.required;
+                      if (!isValidServerUrl(trimmed)) {
+                        return S.invalidServerUrl;
+                      }
+                      return null;
+                    },
                     onFieldSubmitted: (_) => _submit(),
                   ),
                   if (_error != null) ...[

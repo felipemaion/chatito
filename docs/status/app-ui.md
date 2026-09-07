@@ -266,8 +266,34 @@
     padrão do `helpers.dart`).
   Confirmado no mesmo container, com o teste corrigido: as 4 execuções de `session_invalid_test.dart`
   passam (`All tests passed!`) — desta vez com prova de execução real, não só análise estática.
+- **17. Persistência da URL do servidor** (causa raiz do "Conectando…" infinito nos celulares depois de
+  reiniciar, confirmada em campo por logcat + `nc`: `platform/server_config.dart` nunca persistia a URL —
+  `serverUrlProvider` sempre voltava ao padrão de dev, `10.0.2.2`/`127.0.0.1`, inalcançável fora do
+  emulador/desktop — e `realChatFacadeProvider` reconstruía a fachada com esse endereço errado a cada
+  boot). Corrigido:
+  - `platform/server_config.dart`: `loadSavedServerUrl`/`saveServerUrl` (via o mesmo `KeyStore` já aberto
+    para identidade/token — `FileKeyStore`/`SecureKeyStore`, sem dependência nova), `savedServerUrlProvider`
+    (injetado em `main()` ANTES de montar a fachada — nunca cai no padrão se já existe URL salva),
+    `serverUrlPersisterProvider` (como persistir, desacoplado do `KeyStore` p/ os testes de widget não
+    precisarem montar um de verdade), `isValidServerUrl` (`http(s)://host[:porta]`, sem caminho/query),
+    `serverConfiguredProvider` e `commitServerUrl` (valida + seta + marca + persiste, usado por onboarding
+    e Ajustes).
+  - `main.dart`: lê a URL salva antes do `runApp`.
+  - Onboarding: campo "Servidor" ganhou validação de formato; ao registrar, persiste a URL digitada.
+  - Ajustes: novo campo "Servidor" editável (`_ServerUrlSection`), salva + chama `ensureConnected()` na
+    fachada (que já se reconstrói sozinha via `ref.watch(serverUrlProvider)` em `realChatFacadeProvider`).
+  - `ConnectionBanner`: instalação antiga (sessão registrada, mas nunca passou por esta correção — sem URL
+    salva) mostra "Servidor não configurado" com atalho para Ajustes, em vez de tentar reconectar sozinha
+    contra o endereço padrão de dev (quase certo errado num aparelho de verdade).
+  TDD: `test/platform/server_config_test.dart` (novo) + casos novos em `onboarding_test.dart`,
+  `settings_test.dart`, `platform_helpers_test.dart`; `test/ui/helpers.dart` ganhou um default de
+  `savedServerUrlProvider` (senão toda sessão registrada nos testes existentes apareceria como "não
+  configurada"). Verificado por execução real no mesmo repro Docker do item 16 (ampliado com
+  `storage/key_store.dart` + `crypto/crypto_box.dart` reais e stubs mínimos do resto): 28 testes,
+  `All tests passed!`, tanto isolado quanto junto do resto da suíte de UI. `flutter analyze --fatal-infos`
+  limpo no projeto real.
 ## Em andamento
-- (nada) — itens 11 a 16 e o merge commitados e com push feito.
+- (nada) — itens 11 a 17 e o merge commitados e com push feito.
 ## Bloqueios
 - **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): a última verificação real foi a
   do item 11; não voltei a checar desde então (mesmo bloqueio, sem motivo pra esperar que tenha mudado).
