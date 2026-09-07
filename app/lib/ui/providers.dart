@@ -47,6 +47,22 @@ final sessionReadyProvider = NotifierProvider<SessionReadyNotifier, bool>(
   SessionReadyNotifier.new,
 );
 
+/// `true` quando o núcleo acha que há sessão (`sessionProvider` registrado)
+/// mas uma tentativa de reconectar falhou por falta de credencial válida
+/// (ex.: token ausente/expirado no keychain). Sem isto a UI ficaria presa
+/// mostrando "Conectando…"/"Sem conexão" para sempre, quando a saída real é
+/// registrar o aparelho de novo. Ver `ui/reconnect.dart`.
+class SessionInvalidNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
+final sessionInvalidProvider = NotifierProvider<SessionInvalidNotifier, bool>(
+  SessionInvalidNotifier.new,
+);
+
 /// Identidade registrada (null se ainda não registrado).
 final registeredProvider = Provider<Registered?>((ref) {
   final s = ref.watch(sessionProvider);

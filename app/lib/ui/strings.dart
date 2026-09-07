@@ -15,6 +15,8 @@ abstract final class S {
   static const registering = 'Registrando…';
   static const required = 'Obrigatório';
   static const invalidInvite = 'Convite inválido ou expirado';
+  static const sessionExpired =
+      'Sua sessão expirou ou este aparelho foi removido. Registre-se novamente.';
   static const messageHint = 'Mensagem';
   static const send = 'Enviar';
   static const attach = 'Anexar arquivo';

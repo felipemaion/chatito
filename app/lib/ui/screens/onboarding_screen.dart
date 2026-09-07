@@ -53,7 +53,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             deviceName: _device.text.trim(),
             platform: ref.read(platformInfoProvider).name,
           );
-      // O router redireciona ao observar a sessão.
+      // O router redireciona ao observar a sessão; limpa a mensagem de sessão
+      // inválida (se o motivo de estar aqui era essa e não "nunca registrado").
+      ref.read(sessionInvalidProvider.notifier).set(false);
     } on ChatException catch (e) {
       setState(
         () => _error = e.code == 'invalid_invite' ? S.invalidInvite : e.message,
@@ -68,6 +70,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final sessionInvalid = ref.watch(sessionInvalidProvider);
     return Scaffold(
       key: const Key('onboarding'),
       body: Center(
@@ -81,6 +84,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (sessionInvalid) ...[
+                    Container(
+                      key: const Key('session-invalid'),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.warning_amber,
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              S.sessionExpired,
+                              style: TextStyle(
+                                color: theme.colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Icon(
                     Icons.lock_outline,
                     size: 56,

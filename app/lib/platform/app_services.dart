@@ -41,19 +41,17 @@ class _AppServicesState extends ConsumerState<AppServices>
     )..start();
     ref
         .read(pushWakerProvider)
-        .init(
-          onWake: () => unawaited(requestReconnect(facade)),
-          onToken: (_) {},
-        );
+        .init(onWake: () => unawaited(reconnectAndTrack(ref)), onToken: (_) {});
     ref
         .read(connectivityWatcherProvider)
-        .init(onOnline: () => unawaited(requestReconnect(facade)));
+        .init(onOnline: () => unawaited(reconnectAndTrack(ref)));
     // `sessionProvider` começa em `NotRegistered` até a primeira emissão do
     // stream chegar (mesmo se já havia sessão persistida) — este listener
     // cobre tanto isso quanto o registro feito agora pelo onboarding.
     ref.listenManual(sessionProvider, (prev, next) {
       if (!(prev?.isRegistered ?? false) && next.isRegistered) {
-        unawaited(requestReconnect(facade));
+        ref.read(sessionInvalidProvider.notifier).set(false);
+        unawaited(reconnectAndTrack(ref));
       }
     });
   }
@@ -69,7 +67,7 @@ class _AppServicesState extends ConsumerState<AppServices>
     final focus = ref.read(uiFocusProvider);
     focus.isForeground = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.resumed) {
-      unawaited(requestReconnect(ref.read(chatFacadeProvider)));
+      unawaited(reconnectAndTrack(ref));
     }
   }
 

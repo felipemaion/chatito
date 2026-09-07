@@ -32,7 +32,7 @@ class ConnectionBanner extends ConsumerWidget {
             ),
             TextButton(
               key: const Key('reconnect'),
-              onPressed: () => requestReconnect(ref.read(chatFacadeProvider)),
+              onPressed: () => reconnectAndTrack(ref),
               child: Text(
                 S.reconnect,
                 style: TextStyle(color: scheme.onErrorContainer),

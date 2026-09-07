@@ -145,8 +145,26 @@
     que o motivo original. `ACCESS_NETWORK_STATE` também é exigido pelo `connectivity_plus`.
   Testes: `test/ui/push_test.dart` (rede voltando reconecta sem pausar/retomar o app; `NoopConnectivityWatcher`)
   e `test/ui/platform_helpers_test.dart` (botão Reconectar). Nenhuma mudança no domínio/app-core.
+- **12. UI presa achando que há sessão quando o token é inválido.** `RealChatFacade.connect()` lança
+  `ChatException('not_registered', …)` se o token sumiu do keychain mesmo com a sessão em memória
+  (`sessionProvider`) continuando `Registered` — antes disso ficava sem tratamento: a exceção do
+  `unawaited(requestReconnect(...))` era perdida e a UI ficava presa mostrando "Conectando…"/"Sem conexão"
+  para sempre, sem caminho claro (o botão Reconectar do item 11 só repetia o mesmo erro).
+  - `ui/providers.dart`: `sessionInvalidProvider` (bool) — sinaliza esse estado para o router.
+  - `ui/reconnect.dart`: `isSessionInvalid(error)` classifica `ChatException` com código `not_registered`/
+    `unauthorized`; `reconnectAndTrack(ref)` — novo ponto único usado em **todo** lugar que antes chamava
+    `requestReconnect` direto (resume, push, rede voltando, `sessionProvider` ficando registrado, botão
+    Reconectar) — tenta reconectar e marca `sessionInvalidProvider` conforme o resultado.
+  - `ui/router.dart`: `redirect` manda para `/onboarding` sempre que `sessionInvalidProvider` for
+    verdadeiro, **independente** do que `sessionProvider` diz (o núcleo pode continuar achando que há
+    sessão). Registrar de novo com sucesso limpa a flag (`onboarding_screen.dart._submit`).
+  - `onboarding_screen.dart`: mensagem clara (`S.sessionExpired` — "Sua sessão expirou ou este aparelho foi
+    removido. Registre-se novamente.") acima do formulário quando chega por causa disso, em vez do usuário
+    só ver a tela de convite sem contexto.
+  Testes: `test/ui/session_invalid_test.dart` (sessão fica inválida em segundo plano → onboarding com
+  mensagem ao voltar; registrar de novo limpa a mensagem). Nenhuma mudança no domínio/app-core.
 ## Em andamento
-- (nada) — item 11 commitado e com push feito no PR #3.
+- (nada) — itens 11 e 12 commitados e com push feito no PR #3.
 ## Bloqueios (atualização)
 - **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): as execuções mais recentes,
   incluindo a do item 11, falham em segundos com "recent account payments have failed or your spending
