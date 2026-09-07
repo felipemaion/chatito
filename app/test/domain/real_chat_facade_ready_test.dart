@@ -175,4 +175,28 @@ void main() {
       await facade.dispose();
     });
   });
+
+  group('connect() single-flight', () {
+    // Evidência de campo (logcat): três linhas "conectando (geração 1)" em
+    // 7ms, cada uma com seu próprio backoff — três RelayWs criados por
+    // chamadas concorrentes de connect() (autoConnect + gatilhos da UI),
+    // porque a criação do RelayWs fazia `await keyStore.readToken()` ANTES
+    // de atribuir o campo que a checagem seguinte olhava.
+    test('3 chamadas concorrentes de connect() criam só 1 RelayWs (1 conexão no relay)', () async {
+      await seedReturningUser();
+      final facade = build();
+      await facade.init();
+
+      await Future.wait([facade.connect(), facade.connect(), facade.connect()]);
+
+      await until(() => facade.currentConnection == ConnectionState.online);
+      expect(
+        relay.log.where((l) => l == 'GET /v1/ws').length,
+        1,
+        reason: 'só uma conexão real deveria ter chegado ao relay',
+      );
+
+      await facade.dispose();
+    });
+  });
 }
