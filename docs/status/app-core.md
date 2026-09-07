@@ -51,6 +51,20 @@
   `flutter test` local, mas via container Linux com `dart test`, cobrindo os mesmos arquivos de teste).
 - `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
 
+## Onboarding — bug de robustez em campo (macOS): device órfão no servidor
+- **Relato**: registro completava no servidor e SÓ DEPOIS falhava ao gravar a chave privada no
+  keychain (erro do SO), deixando um device órfão no servidor e o app sem token nem sessão.
+- **Causa**: `Onboarding.register` chamava `POST /v1/devices` **antes** de gravar a identidade no
+  `KeyStore`.
+- **Correção**: inverte a ordem — gera o par de chaves, grava no `KeyStore` e **relê** para
+  confirmar (byte a byte) que bateu, só então chama `POST /v1/devices`. Falha na escrita ou
+  releitura que não confere → `ChatException('storage', …)`, sem tocar o servidor. Se o registro
+  falhar depois (rede, `invalid_invite`, etc.), apaga a chave que acabou de gravar
+  (`KeyStore.deleteIdentity()`, novo método na interface — implementado em `MapKeyStore`, então
+  `SecureKeyStore` do app-ui já herda de graça).
+- Testes novos em `test/domain/onboarding_test.dart` (5), com um `FlakyKeyStore` que simula
+  falha de escrita e releitura inconsistente. 117/117 testes verdes no total.
+
 ## RelayWs — testes de queda/corrida (fake_relay)
 - Testes novos em `test/transport/relay_ws_test.dart`: `closeSocket(code: 1001)` (queda de rede,
   reconecta sozinho e zera tentativas), `closeSocket(code: 4409)` simulado direto pelo relay (sem
