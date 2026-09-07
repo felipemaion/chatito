@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -79,7 +77,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             name: picked.name,
             mime: picked.mime,
             size: picked.size,
-            data: File(picked.path).openRead(),
+            data: ref.read(fileReaderProvider).openRead(picked.path),
           );
     } catch (e) {
       _showError(e);

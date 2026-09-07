@@ -105,8 +105,30 @@
     `flutter_test` para este exato problema.
   Nenhum ajuste foi necessário no `FakeChatFacade` do app-core nem no comportamento do domínio — as 4
   falhas eram inteiramente de como eu escrevi os testes de widget.
+- **10. Terceira rodada via CI**: a correção de `runAsync` do item 9 **não resolveu** — o timeout de
+  10 min voltou a acontecer, e mais 2 testes ("envia texto...", "Enter envia...") voltaram a falhar com
+  "Timer is still pending" mesmo com `addTearDown(f.dispose)`. Desta vez, antes de reenviar, reproduzi as
+  3 falhas isoladamente num container Linux (`ghcr.io/cirruslabs/flutter:stable`, Flutter 3.44/Dart 3.12 —
+  a versão exata desta máquina, 3.47.2, não existe como imagem pública; não consegui rodar a suíte real do
+  projeto no container porque o pacote `sodium` exige Dart SDK ≥3.13.0 mesmo relaxando o `pubspec.yaml`
+  local, então montei um projeto Flutter mínimo replicando só os padrões em jogo) para confirmar as causas
+  antes de corrigir de novo:
+  - **`addTearDown` roda tarde demais**: `flutter_test` verifica "nenhum timer pendente" **antes** dos
+    `addTearDown`s rodarem (a checagem é parte do próprio corpo do teste, não do teardown). Confirmado no
+    repro: um teste com `addTearDown(f.dispose)` falha com "Timer is still pending"; o mesmo teste com
+    `await f.dispose()` como **última linha do corpo do teste** passa. Troquei `addTearDown(f.dispose)`
+    por `await f.dispose()` explícito no fim dos dois testes que chamam `sendText` (só eles criam o timer).
+  - **`tester.runAsync()` também trava** com I/O real de disco neste ambiente (contra a documentação do
+    Flutter) — confirmado no repro: tanto envolver `tap()+pumpAndSettle()` quanto chamar `runAsync` de
+    dentro do callback do widget travam os mesmos 10 minutos. A correção real foi eliminar o I/O de disco
+    do teste de widget: novo `FileReader` (abstração em `platform/files.dart`, como `FilePickerService`/
+    `FileOpener`) por trás de `fileReaderProvider`; `chat_screen.dart._attach()` agora lê os bytes por ele
+    em vez de `File(path).openRead()` direto. O teste "anexar arquivo..." injeta um `FileReader` fake que
+    devolve um `Stream` em memória — confirmado no repro que isso roda instantâneo, sem tocar disco.
+  Continua não havendo nenhuma mudança no `FakeChatFacade`/domínio do app-core.
 ## Em andamento
-- Push da 2ª rodada de correções; aguardando novo resultado do CI.
+- Push da 3ª rodada de correções (validadas por reprodução isolada em container, não pela suíte completa —
+  ver bloqueio de SDK acima); aguardando novo resultado do CI.
 ## Bloqueios
 - **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
   da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para

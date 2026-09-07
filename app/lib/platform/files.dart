@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
@@ -25,6 +27,13 @@ abstract class FilePickerService {
 /// Abre um arquivo local com o app padrão do sistema.
 abstract class FileOpener {
   Future<void> open(String path);
+}
+
+/// Lê os bytes de um arquivo já escolhido (abstração para testes — real I/O
+/// de disco dentro de um widget test trava sob o relógio falso do
+/// `flutter_test`, mesmo dentro de `tester.runAsync`).
+abstract class FileReader {
+  Stream<List<int>> openRead(String path);
 }
 
 class SystemFilePicker implements FilePickerService {
@@ -56,6 +65,13 @@ class SystemFileOpener implements FileOpener {
   }
 }
 
+class SystemFileReader implements FileReader {
+  const SystemFileReader();
+
+  @override
+  Stream<List<int>> openRead(String path) => File(path).openRead();
+}
+
 /// MIME simples por extensão (o núcleo pode refinar).
 String mimeFromName(String name) {
   final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
@@ -81,4 +97,7 @@ final filePickerProvider = Provider<FilePickerService>(
 );
 final fileOpenerProvider = Provider<FileOpener>(
   (_) => const SystemFileOpener(),
+);
+final fileReaderProvider = Provider<FileReader>(
+  (_) => const SystemFileReader(),
 );

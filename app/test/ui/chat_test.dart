@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:chatito/domain/domain.dart';
 import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/platform/files.dart';
@@ -21,14 +19,18 @@ class _FakePicker implements FilePickerService {
   }
 }
 
-/// Sem resposta automática (delay bem longo, nunca dispara na janela do
-/// teste). `_scheduleReply` cria um `Timer` real mesmo com delay longo — por
-/// isso **todo** teste que usa isto precisa de `addTearDown(f.dispose)`, ou
-/// `flutter_test` falha com "A Timer is still pending" ao final do teste.
-FakeChatFacade _seeded() {
-  final f = FakeChatFacade(autoReplyDelay: const Duration(days: 1));
-  return f;
+/// Sem I/O real de disco: `flutter_test` trava indefinidamente com
+/// `dart:io` real (mesmo dentro de `tester.runAsync`, confirmado localmente
+/// num container Linux). Devolve os mesmos bytes sempre.
+class _FakeFileReader implements FileReader {
+  const _FakeFileReader(this.bytes);
+  final List<int> bytes;
+  @override
+  Stream<List<int>> openRead(String path) => Stream.value(bytes);
 }
+
+FakeChatFacade _seeded() =>
+    FakeChatFacade(autoReplyDelay: const Duration(days: 1));
 
 /// Com resposta automática imediata — só para o teste que exercita esse fluxo.
 FakeChatFacade _seededAutoReply() =>
@@ -49,7 +51,6 @@ void main() {
 
   testWidgets('abrir a conversa marca como lida', (tester) async {
     final f = _seeded();
-    addTearDown(f.dispose);
     await pumpScreen(tester, ChatScreen(convId: family), facade: f);
     final convs = await f.watchConversations().first;
     expect(convs.firstWhere((c) => c.id == family).unreadCount, 0);
@@ -57,7 +58,6 @@ void main() {
 
   testWidgets('envia texto e limpa o campo', (tester) async {
     final f = _seeded();
-    addTearDown(f.dispose);
     await pumpScreen(tester, ChatScreen(convId: family), facade: f);
     final send = find.byKey(const Key('send'));
     expect(tester.widget<IconButton>(send).onPressed, isNull);
@@ -76,11 +76,14 @@ void main() {
           .text,
       '',
     );
+    // `sendText` agenda um Timer real de resposta (delay longo, não dispara
+    // aqui); `flutter_test` exige que nada fique pendente ao FIM do corpo do
+    // teste — um `addTearDown` roda tarde demais para essa checagem.
+    await f.dispose();
   });
 
   testWidgets('Enter envia no desktop', (tester) async {
     final f = _seeded();
-    addTearDown(f.dispose);
     await pumpScreen(
       tester,
       ChatScreen(convId: family),
@@ -93,6 +96,7 @@ void main() {
     await tester.pumpAndSettle();
     final msgs = await f.watchMessages(family).first;
     expect(msgs.last.body, 'via enter');
+    await f.dispose();
   });
 
   testWidgets('recibos: entregue e lido', (tester) async {
@@ -106,7 +110,6 @@ void main() {
     'resposta automática chega com a conversa aberta e continua lida',
     (tester) async {
       final f = _seededAutoReply();
-      addTearDown(f.dispose);
       await pumpScreen(tester, ChatScreen(convId: direct), facade: f);
       await tester.enterText(find.byKey(const Key('composer')), 'oi mãe');
       await tester.pump(); // habilita o botão de enviar antes do tap
@@ -121,22 +124,10 @@ void main() {
   );
 
   testWidgets('anexar arquivo envia e mostra como disponível', (tester) async {
-    // I/O real de disco (`dart:io`) trava indefinidamente sob o relógio falso
-    // de `flutter_test` a menos que rode dentro de `runAsync` — sem isto o
-    // teste nunca termina (timeout de 10 min em CI).
-    late File tmp;
-    await tester.runAsync(() async {
-      tmp = File(
-        '${Directory.systemTemp.path}/chatito_test_${DateTime.now().microsecondsSinceEpoch}.pdf',
-      );
-      await tmp.writeAsBytes(List.generate(4096, (i) => i % 256));
-    });
-    addTearDown(() => tmp.delete());
     final f = _seeded();
-    addTearDown(f.dispose);
     final picker = _FakePicker(
-      PickedFile(
-        path: tmp.path,
+      const PickedFile(
+        path: '/nao-existe/doc.pdf',
         name: 'doc.pdf',
         size: 4096,
         mime: 'application/pdf',
@@ -146,12 +137,17 @@ void main() {
       tester,
       ChatScreen(convId: family),
       facade: f,
-      overrides: [filePickerProvider.overrideWithValue(picker)],
+      overrides: [
+        filePickerProvider.overrideWithValue(picker),
+        // Sem I/O real: `_attach()` lê via `fileReaderProvider`, não
+        // `File(path).openRead()` direto — evita travar o teste.
+        fileReaderProvider.overrideWithValue(
+          _FakeFileReader(List.generate(4096, (i) => i % 256)),
+        ),
+      ],
     );
-    await tester.runAsync(() async {
-      await tester.tap(find.byKey(const Key('attach')));
-      await tester.pumpAndSettle();
-    });
+    await tester.tap(find.byKey(const Key('attach')));
+    await tester.pumpAndSettle();
     expect(picker.calls, 1);
     final msgs = await f.watchMessages(family).first;
     final last = msgs.last;
@@ -169,7 +165,6 @@ void main() {
 
   testWidgets('picker cancelado não envia nada', (tester) async {
     final f = _seeded();
-    addTearDown(f.dispose);
     final before = (await f.watchMessages(family).first).length;
     await pumpScreen(
       tester,
