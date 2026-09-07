@@ -29,6 +29,24 @@ final sessionProvider = NotifierProvider<SessionNotifier, SessionState>(
   SessionNotifier.new,
 );
 
+/// `false` até a primeira emissão de `watchSession()` chegar. O router usa
+/// isto para não redirecionar com base no `NotRegistered` inicial "de mentira"
+/// (a sessão real pode já estar registrada; só ainda não emitiu).
+class SessionReadyNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    final sub = ref.watch(chatFacadeProvider).watchSession().listen((_) {
+      if (!state) state = true;
+    });
+    ref.onDispose(sub.cancel);
+    return false;
+  }
+}
+
+final sessionReadyProvider = NotifierProvider<SessionReadyNotifier, bool>(
+  SessionReadyNotifier.new,
+);
+
 /// Identidade registrada (null se ainda não registrado).
 final registeredProvider = Provider<Registered?>((ref) {
   final s = ref.watch(sessionProvider);

@@ -32,7 +32,7 @@ void main() {
   late UiFocus focus;
   var enabled = true;
 
-  NotificationCoordinator start(FakeChatFacade f) {
+  Future<NotificationCoordinator> start(FakeChatFacade f) async {
     n = _FakeNotifier();
     focus = UiFocus();
     enabled = true;
@@ -44,6 +44,11 @@ void main() {
     )..start();
     addTearDown(c.stop);
     addTearDown(f.dispose);
+    // O `Observable.stream` do domínio emite o valor atual de forma
+    // assíncrona (async*); sem este respiro, uma ação síncrona logo após
+    // `start()` pode disparar antes da assinatura terminar de se conectar
+    // ao stream, e o evento se perde (broadcast sem buffer).
+    await Future<void>.delayed(Duration.zero);
     return c;
   }
 
@@ -51,7 +56,7 @@ void main() {
     'mensagem recebida (resposta automática) notifica com título e prévia',
     () async {
       final f = _facade(autoReply: true);
-      start(f);
+      await start(f);
       await f.sendText(family, 'Jantar hoje?');
       await Future<void>.delayed(Duration.zero);
       expect(n.shown, hasLength(1));
@@ -63,7 +68,7 @@ void main() {
 
   test('não notifica a própria mensagem', () async {
     final f = _facade();
-    start(f);
+    await start(f);
     await f.sendText(family, 'eu');
     await Future<void>.delayed(Duration.zero);
     expect(n.shown, isEmpty);
@@ -71,7 +76,7 @@ void main() {
 
   test('não notifica conversa aberta em primeiro plano', () async {
     final f = _facade(autoReply: true);
-    start(f);
+    await start(f);
     focus.activeConvId = family;
     focus.isForeground = true;
     await f.sendText(family, 'x');
@@ -81,7 +86,7 @@ void main() {
 
   test('notifica conversa aberta se o app está em segundo plano', () async {
     final f = _facade(autoReply: true);
-    start(f);
+    await start(f);
     focus.activeConvId = family;
     focus.isForeground = false;
     await f.sendText(family, 'x');
@@ -91,7 +96,7 @@ void main() {
 
   test('preferência desligada silencia', () async {
     final f = _facade(autoReply: true);
-    start(f);
+    await start(f);
     enabled = false;
     await f.sendText(family, 'x');
     await Future<void>.delayed(Duration.zero);
@@ -99,7 +104,7 @@ void main() {
   });
 
   test('toque na notificação chama onOpen com a conversa', () async {
-    final c = start(_facade());
+    final c = await start(_facade());
     String? opened;
     c.onOpen = (id) => opened = id;
     n.onTap!('u:usr_A:usr_B');
@@ -108,7 +113,7 @@ void main() {
 
   test('não repete notificação para a mesma mensagem', () async {
     final f = _facade(autoReply: true);
-    start(f);
+    await start(f);
     await f.sendText(family, 'x');
     await Future<void>.delayed(Duration.zero);
     await f.markRead(family); // emite conversations de novo, mesma última msg

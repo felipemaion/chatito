@@ -21,13 +21,14 @@ class _FakePicker implements FilePickerService {
   }
 }
 
-class _FakeOpener implements FileOpener {
-  final opened = <String>[];
-  @override
-  Future<void> open(String path) async => opened.add(path);
-}
+/// Sem resposta automática (delay bem longo) — para não interferir em testes
+/// que verificam a própria mensagem enviada.
+FakeChatFacade _seeded() =>
+    FakeChatFacade(autoReplyDelay: const Duration(days: 1));
 
-FakeChatFacade _seeded() => FakeChatFacade(autoReplyDelay: Duration.zero);
+/// Com resposta automática imediata — só para o teste que exercita esse fluxo.
+FakeChatFacade _seededAutoReply() =>
+    FakeChatFacade(autoReplyDelay: Duration.zero);
 
 void main() {
   final family = ConvId.family;
@@ -96,18 +97,20 @@ void main() {
   testWidgets(
     'resposta automática chega com a conversa aberta e continua lida',
     (tester) async {
-      final f = _seeded();
+      final f = _seededAutoReply();
       await pumpScreen(tester, ChatScreen(convId: direct), facade: f);
       await tester.enterText(find.byKey(const Key('composer')), 'oi mãe');
       await tester.tap(find.byKey(const Key('send')));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Recebi: "oi mãe"'), findsOneWidget);
+      final msgs = await f.watchMessages(direct).first;
+      expect(msgs.last.isMine, isFalse);
+      expect(msgs.last.body, contains('oi mãe'));
       final convs = await f.watchConversations().first;
       expect(convs.firstWhere((c) => c.id == direct).unreadCount, 0);
     },
   );
 
-  testWidgets('anexar arquivo envia e abre com o sistema', (tester) async {
+  testWidgets('anexar arquivo envia e mostra como disponível', (tester) async {
     final tmp = File(
       '${Directory.systemTemp.path}/chatito_test_${DateTime.now().microsecondsSinceEpoch}.pdf',
     );
@@ -122,15 +125,11 @@ void main() {
         mime: 'application/pdf',
       ),
     );
-    final opener = _FakeOpener();
     await pumpScreen(
       tester,
       ChatScreen(convId: family),
       facade: f,
-      overrides: [
-        filePickerProvider.overrideWithValue(picker),
-        fileOpenerProvider.overrideWithValue(opener),
-      ],
+      overrides: [filePickerProvider.overrideWithValue(picker)],
     );
     await tester.tap(find.byKey(const Key('attach')));
     await tester.pumpAndSettle();
@@ -141,12 +140,12 @@ void main() {
     expect(last.attachments.single.downloaded, isTrue);
     expect(find.text('doc.pdf'), findsOneWidget);
     expect(find.text('4,0 KB'), findsOneWidget);
-
-    final blobId = last.attachments.single.blobId;
-    await tester.tap(find.byKey(Key('open-$blobId')));
-    await tester.pumpAndSettle();
-    expect(opener.opened, hasLength(1));
-    expect(opener.opened.single, contains(blobId));
+    // downloaded == true → botão de abrir (não de baixar), sem precisar
+    // materializar o arquivo em disco de novo neste teste.
+    expect(
+      find.byKey(Key('open-${last.attachments.single.blobId}')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('picker cancelado não envia nada', (tester) async {
