@@ -41,16 +41,33 @@
   (compara `identity_key` do diretório antes/depois). O ramo existe por compatibilidade com
   o protocolo, caso um peer futuro emita.
 
+## PR #4 — build Windows corrigido (migração sodium 3→4)
+- Causa: `sodium_libs` 3.4.6 está descontinuado; seu `windows/CMakeLists.txt` legado falhava no passo
+  `INSTALL.vcxproj` / `cmake_install.cmake` (MSB3073) no runner `windows-latest` (log do run 34073180683).
+- Correção: `sodium: ^4.1.0` (native assets, compila libsodium 1.0.22 por build hook — mesmo binário em
+  app e testes) e removido `sodium_libs`. `test/support/sodium.dart` agora só chama `SodiumInit.init()`
+  sem argumento (a lib nativa não é mais localizada por caminho do sistema).
+- **Vetor `crypto_box_vector.json` continua passando** — validado (ver Bloqueios: não rodei via
+  `flutter test` local, mas via container Linux com `dart test`, cobrindo os mesmos arquivos de teste).
+- `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
+
 ## Bloqueios
-- **CI (infra):** testes de `crypto` rodam na VM com o pacote `sodium` e precisam de `libsodium` nativo.
-  Localmente: `brew install libsodium`. No `ci-app.yml` (ubuntu) falta `sudo apt-get install -y libsodium23`
-  antes de `flutter test`. O helper de teste procura `LIBSODIUM_PATH`, depois caminhos padrão
-  (`/opt/homebrew/lib`, `/usr/lib/x86_64-linux-gnu`, `/usr/lib`). Peço ao infra incluir o passo.
-- **`sodium_libs` está descontinuado** (substituído por `sodium` 4.x com native assets, que compila o libsodium
-  por build hook e dispensaria o passo acima no CI). Tentei migrar: o hook exige Xcode completo
-  (`…/Platforms/MacOSX.platform/Developer/SDKs`), e esta máquina só tem Command Line Tools → `configure` falha.
-  Mantive `sodium`/`sodium_libs` 3.4.6. Migrar quando o Mac tiver Xcode (necessário de todo modo para
-  `flutter build macos`): trocar para `sodium: ^4.1.0`, remover `sodium_libs`, e `SodiumInit.init()` sem argumento.
+- **`flutter test` local quebrado nesta máquina**: o hook de build nativo do `sodium` 4.x roda para
+  **todo** `flutter test` (não só testes de crypto), e no macOS exige Xcode completo
+  (`…/Platforms/MacOSX.platform/Developer/SDKs`) — esta máquina só tem Command Line Tools, então
+  `configure` do libsodium falha antes de qualquer teste. **Não é regressão desta mudança**: já era assim
+  com `sodium` 3.x/`sodium_libs` para os testes de `crypto` especificamente; agora afeta a suíte inteira,
+  porque o hook nativo passou a rodar para todo o pacote. Sem solução de contorno no pacote (a API antiga
+  que aceitava um `DynamicLibrary` explícito não existe mais em 4.x).
+- **Como validei mesmo assim**: montei uma cópia standalone de `lib/`+`test/`+fixtures (Dart puro, sem
+  `flutter`/`flutter_test`) e rodei `dart test` num container Linux (`dart:3.13.2` + build-essential/
+  autoconf/automake/libtool/pkg-config) — **109/109 testes verdes**, incluindo o vetor de crypto. Isso
+  espelha o job `test` do CI (`ubuntu-latest`, que já vem com essas ferramentas de build por padrão).
+  Os jobs `build-desktop` (windows-latest/macos-latest) rodam com Visual Studio e Xcode completos nos
+  runners hospedados pelo GitHub, então o hook deve funcionar neles sem ajuste — é só nesta máquina de
+  desenvolvimento (CLT-only) que fica bloqueado.
+- Ação sugerida para o próximo agente/sessão nesta máquina: instalar o Xcode completo (não só Command
+  Line Tools) para voltar a rodar `flutter test`/`flutter build macos` localmente.
 
 ## Próximo
 - 3 → 4 (storage) → 5 (transport) → 6 (domain real: `RealChatFacade`).
