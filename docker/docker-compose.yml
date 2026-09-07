@@ -1,4 +1,5 @@
 # Produção (Oracle). Sem "ports:" — o Caddy alcança pela rede externa "proxy".
+name: chatito
 services:
   relay:
     build: { context: .., dockerfile: docker/Dockerfile }
