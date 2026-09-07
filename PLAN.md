@@ -180,6 +180,7 @@ review e merge, resolve conflitos e fala com você.
 Cada agente interativo carrega ~22k tokens de ambiente por turno (medido neste setup). Fase 1
 com 4 agentes por ~3–5 h de trabalho autônomo cada tende a consumir na ordem de **alguns
 milhões de tokens no total** (estimativa grosseira: 4 agentes × 150–300 turnos × ~25–40k).
+**Política de modelos (2026-09-06):** agentes de código em **Sonnet 5** ($2/$10 por M tokens; Fable custa $10/$50); revisores em Sonnet 5; nada em Fable. Haiku 4.5 descartado para agentes com contexto grande (janela de 200K). Orquestrador também em Sonnet 5.
 Para reduzir: escopos bem fechados, `CLAUDE.md` curto no repo, status em arquivo em vez de
 conversa, e agentes de revisão rodando com Sonnet quando a tarefa for mecânica.
 Fases 0, 2, 3 e 4 são bem menores (1–2 agentes).
