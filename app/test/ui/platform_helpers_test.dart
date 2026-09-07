@@ -93,8 +93,8 @@ void main() {
       );
       expect(find.text(S.serverNotConfigured), findsOneWidget);
       expect(find.byKey(const Key('reconnect')), findsNothing);
-      expect(find.byKey(const Key('open-settings')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('open-settings')));
+      expect(find.byKey(const Key('banner-open-settings')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('banner-open-settings')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('settings')), findsOneWidget);
     },

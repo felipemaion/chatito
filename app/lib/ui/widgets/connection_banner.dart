@@ -51,7 +51,7 @@ class ConnectionBanner extends ConsumerWidget {
               ),
             ),
             TextButton(
-              key: Key(unconfigured ? 'open-settings' : 'reconnect'),
+              key: Key(unconfigured ? 'banner-open-settings' : 'reconnect'),
               onPressed: unconfigured
                   ? () => ref.read(routerProvider(null)).go('/settings')
                   : () => reconnectAndTrack(ref),
