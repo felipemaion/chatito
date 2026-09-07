@@ -5,7 +5,13 @@ import '../storage/storage.dart';
 /// [KeyStore] real sobre o keychain/keystore do SO.
 class SecureKeyStore extends MapKeyStore {
   SecureKeyStore([FlutterSecureStorage? storage])
-    : _storage = storage ?? const FlutterSecureStorage();
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            // macOS: o keychain de proteção de dados exige assinatura com Team ID;
+            // fora da App Store (assinatura ad-hoc) só o keychain clássico funciona.
+            mOptions: MacOsOptions(useDataProtectionKeychain: false),
+          );
 
   final FlutterSecureStorage _storage;
 
