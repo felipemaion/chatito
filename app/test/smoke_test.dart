@@ -1,5 +1,6 @@
 import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/main.dart';
+import 'package:chatito/platform/connectivity.dart';
 import 'package:chatito/platform/notifications.dart';
 import 'package:chatito/platform/push.dart';
 import 'package:chatito/ui/providers.dart';
@@ -26,6 +27,9 @@ void main() {
             FakeChatFacade(autoReplyDelay: Duration.zero),
           ),
           pushWakerProvider.overrideWithValue(const NoopPushWaker()),
+          connectivityWatcherProvider.overrideWithValue(
+            const NoopConnectivityWatcher(),
+          ),
           localNotificationsProvider.overrideWithValue(_NoopNotifier()),
         ],
         child: const MainApp(),

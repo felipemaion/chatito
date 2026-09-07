@@ -61,4 +61,19 @@ void main() {
     await pumpApp(tester, size: phoneSize);
     expect(find.byKey(const Key('connection-banner')), findsOneWidget);
   });
+
+  testWidgets('botão Reconectar da faixa de conexão chama connect()', (
+    tester,
+  ) async {
+    final f = FakeChatFacade(autoReplyDelay: Duration.zero);
+    await pumpScreen(
+      tester,
+      const Scaffold(body: ConnectionBanner()),
+      facade: f,
+    );
+    expect(find.text(S.offline), findsOneWidget);
+    await tester.tap(find.byKey(const Key('reconnect')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('connection-banner')), findsNothing);
+  });
 }

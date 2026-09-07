@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../ui/focus.dart';
 import '../ui/notification_coordinator.dart';
 import '../ui/providers.dart';
+import '../ui/reconnect.dart';
 import '../ui/settings.dart';
+import 'connectivity.dart';
 import 'notifications.dart';
 import 'push.dart';
 
@@ -39,13 +41,19 @@ class _AppServicesState extends ConsumerState<AppServices>
     )..start();
     ref
         .read(pushWakerProvider)
-        .init(onWake: () => unawaited(facade.connect()), onToken: (_) {});
+        .init(
+          onWake: () => unawaited(requestReconnect(facade)),
+          onToken: (_) {},
+        );
+    ref
+        .read(connectivityWatcherProvider)
+        .init(onOnline: () => unawaited(requestReconnect(facade)));
     // `sessionProvider` começa em `NotRegistered` até a primeira emissão do
     // stream chegar (mesmo se já havia sessão persistida) — este listener
     // cobre tanto isso quanto o registro feito agora pelo onboarding.
     ref.listenManual(sessionProvider, (prev, next) {
       if (!(prev?.isRegistered ?? false) && next.isRegistered) {
-        unawaited(facade.connect());
+        unawaited(requestReconnect(facade));
       }
     });
   }
@@ -61,7 +69,7 @@ class _AppServicesState extends ConsumerState<AppServices>
     final focus = ref.read(uiFocusProvider);
     focus.isForeground = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.resumed) {
-      unawaited(ref.read(chatFacadeProvider).connect());
+      unawaited(requestReconnect(ref.read(chatFacadeProvider)));
     }
   }
 

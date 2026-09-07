@@ -1,6 +1,7 @@
 import 'package:chatito/domain/domain.dart' show ConnectionState;
 import 'package:chatito/domain/fakes/fake_chat_facade.dart';
 import 'package:chatito/platform/app_services.dart';
+import 'package:chatito/platform/connectivity.dart';
 import 'package:chatito/platform/notifications.dart';
 import 'package:chatito/platform/push.dart';
 import 'package:chatito/ui/providers.dart';
@@ -19,6 +20,13 @@ class _FakePush implements PushWaker {
     wake = onWake;
     token = onToken;
   }
+}
+
+class _FakeConnectivity implements ConnectivityWatcher {
+  void Function()? online;
+  @override
+  Future<void> init({required void Function() onOnline}) async =>
+      online = onOnline;
 }
 
 class _NoopNotifier implements LocalNotifications {
@@ -43,6 +51,9 @@ void main() {
         overrides: [
           chatFacadeProvider.overrideWithValue(f),
           pushWakerProvider.overrideWithValue(push),
+          connectivityWatcherProvider.overrideWithValue(
+            const NoopConnectivityWatcher(),
+          ),
           localNotificationsProvider.overrideWithValue(_NoopNotifier()),
         ],
         child: const AppServices(child: SizedBox()),
@@ -65,6 +76,9 @@ void main() {
           overrides: [
             chatFacadeProvider.overrideWithValue(f),
             pushWakerProvider.overrideWithValue(_FakePush()),
+            connectivityWatcherProvider.overrideWithValue(
+              const NoopConnectivityWatcher(),
+            ),
             localNotificationsProvider.overrideWithValue(_NoopNotifier()),
           ],
           child: const AppServices(child: SizedBox()),
@@ -81,7 +95,36 @@ void main() {
     },
   );
 
+  testWidgets('rede voltando reconecta mesmo sem o app ser pausado/retomado', (
+    tester,
+  ) async {
+    final f = _seeded();
+    final connectivity = _FakeConnectivity();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          chatFacadeProvider.overrideWithValue(f),
+          pushWakerProvider.overrideWithValue(_FakePush()),
+          connectivityWatcherProvider.overrideWithValue(connectivity),
+          localNotificationsProvider.overrideWithValue(_NoopNotifier()),
+        ],
+        child: const AppServices(child: SizedBox()),
+      ),
+    );
+    await tester.pump();
+    await f.disconnect();
+    expect(await f.watchConnection().first, ConnectionState.offline);
+    expect(connectivity.online, isNotNull);
+    connectivity.online!();
+    await tester.pump();
+    expect(await f.watchConnection().first, ConnectionState.online);
+  });
+
   test('NoopPushWaker não faz nada', () async {
     await const NoopPushWaker().init(onWake: () {}, onToken: (_) {});
+  });
+
+  test('NoopConnectivityWatcher não faz nada', () async {
+    await const NoopConnectivityWatcher().init(onOnline: () {});
   });
 }

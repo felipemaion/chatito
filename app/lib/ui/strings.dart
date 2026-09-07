@@ -45,6 +45,7 @@ abstract final class S {
   static const remove = 'Remover';
   static const offline = 'Sem conexão';
   static const connecting = 'Conectando…';
+  static const reconnect = 'Reconectar';
   static const group = 'Grupo';
   static const you = 'Você';
   static const members = 'Membros';

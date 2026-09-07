@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/domain.dart';
 import '../providers.dart';
+import '../reconnect.dart';
 import '../strings.dart';
 
 /// Faixa discreta quando o app está sem conexão com o relay.
@@ -23,9 +24,19 @@ class ConnectionBanner extends ConsumerWidget {
           children: [
             Icon(Icons.cloud_off, size: 16, color: scheme.onErrorContainer),
             const SizedBox(width: 8),
-            Text(
-              state == ConnectionState.offline ? S.offline : S.connecting,
-              style: TextStyle(color: scheme.onErrorContainer),
+            Expanded(
+              child: Text(
+                state == ConnectionState.offline ? S.offline : S.connecting,
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+            TextButton(
+              key: const Key('reconnect'),
+              onPressed: () => requestReconnect(ref.read(chatFacadeProvider)),
+              child: Text(
+                S.reconnect,
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
             ),
           ],
         ),

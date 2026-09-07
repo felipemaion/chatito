@@ -126,12 +126,35 @@
     em vez de `File(path).openRead()` direto. O teste "anexar arquivo..." injeta um `FileReader` fake que
     devolve um `Stream` em memória — confirmado no repro que isso roda instantâneo, sem tocar disco.
   Continua não havendo nenhuma mudança no `FakeChatFacade`/domínio do app-core.
+- **11. Bug de campo: Android não reconecta o WS ao voltar do segundo plano.** `AppServices`
+  (`platform/app_services.dart`) já chamava `connect()` em `AppLifecycleState.resumed`; o gap real era não
+  cobrir o caso comum de a rede cair/trocar **sem** o app sair do primeiro plano (wifi↔dados móveis, Doze
+  derrubando o socket) — o app ficava preso em `offline` até o usuário reabrir o app manualmente. Adicionado:
+  - `platform/connectivity.dart`: `ConnectivityWatcher` (abstração testável) sobre `connectivity_plus`,
+    guardado em try/catch (mesmo padrão de `push.dart`) — chama `onOnline` quando a rede volta.
+    `NoopConnectivityWatcher` para plataformas/testes sem o canal.
+  - `ui/reconnect.dart`: `requestReconnect(facade)` — ponto único que hoje chama `facade.connect()`
+    (idempotente) e vira `facade.ensureConnected()` quando o app-core adicionar esse método à `ChatFacade`
+    (ver Bloqueios). Usado em `app_services.dart` (resume, wake do push, `sessionProvider` ficando
+    registrado, agora também `onOnline` da rede) e no botão novo.
+  - `widgets/connection_banner.dart`: botão **Reconectar** na faixa de offline/conectando, chama
+    `requestReconnect`.
+  - `android/app/src/main/AndroidManifest.xml`: faltavam `INTERNET` e `ACCESS_NETWORK_STATE` no manifesto
+    principal (só existiam nos manifestos de debug/profile, que o Flutter injeta sozinho para
+    desenvolvimento) — **a APK release ficaria sem nenhuma permissão de rede**, um bug real e mais grave
+    que o motivo original. `ACCESS_NETWORK_STATE` também é exigido pelo `connectivity_plus`.
+  Testes: `test/ui/push_test.dart` (rede voltando reconecta sem pausar/retomar o app; `NoopConnectivityWatcher`)
+  e `test/ui/platform_helpers_test.dart` (botão Reconectar). Nenhuma mudança no domínio/app-core.
 ## Em andamento
-- Push da 3ª rodada de correções feito (`db1112f`), mas o CI **não chegou a rodar**: as 3 execuções
-  disparadas por esse push falharam em segundos com "The job was not started because recent account
-  payments have failed or your spending limit needs to be increased" — bloqueio de faturamento do GitHub
-  Actions na conta, não relacionado a código. Nada a corrigir do meu lado; aguardando o orquestrador
-  resolver em Settings → Billing & plans do GitHub e disparar o CI de novo (push vazio ou re-run).
+- (nada) — item 11 commitado e com push feito no PR #3.
+## Bloqueios (atualização)
+- **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): as execuções mais recentes,
+  incluindo a do item 11, falham em segundos com "recent account payments have failed or your spending
+  limit needs to be increased" antes de rodar qualquer teste. Não hei nada a corrigir do meu lado — o
+  orquestrador precisa resolver em Settings → Billing & plans do GitHub e então re-disparar o CI.
+- `requestReconnect` chama `facade.connect()`; trocar para `facade.ensureConnected()` assim que o app-core
+  adicionar esse método à `ChatFacade` (mencionado na tarefa como já estando em andamento do lado deles) —
+  é uma troca de uma linha em `ui/reconnect.dart`.
 ## Bloqueios
 - **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
   da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para
