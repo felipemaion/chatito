@@ -199,17 +199,64 @@
   da lista de plataformas do `PLAN.md` — só macOS/Windows/Android); não criei nada lá. Não construí uma
   implementação de arquivo própria/paralela: seria crypto caseira duplicando o que os plugins nativos já
   fazem com mais segurança (contraria a regra do `CLAUDE.md` de só usar primitivas de alto nível prontas).
+- **14. 3 testes falhando no Mac do usuário (rodou `flutter test` de verdade) + merge do app-core.**
+  - **`git merge origin/main`**: trouxe `ChatFacade.ensureConnected()` (espera o carregamento inicial da
+    sessão — `_ready` — antes de decidir, e cancela tentativa travada/backoff em andamento) e a correção da
+    corrida de inicialização do lado do `RealChatFacade`, além de um fix de macOS
+    (`MacOsOptions(usesDataProtectionKeychain: false)` em `secure_key_store.dart`, keychain clássico por
+    causa de assinatura ad-hoc). Conflitos em `lib/ui/{providers,reconnect,router,strings,
+    screens/onboarding_screen,widgets/connection_banner}.dart` e `platform/app_services.dart` resolvidos
+    mantendo este branch (origin/main só tinha a versão pré-item-12, já superada); em
+    `secure_key_store.dart` mantido o fix de macOS do app-core.
+  - **`ui/reconnect.dart`**: `requestReconnect` passou a chamar `facade.ensureConnected()` em vez de
+    `connect()` — usado em **todos** os gatilhos (resume, push, rede voltando, botão) via
+    `reconnectAndTrack`, já que todos passam por ali.
+  - **Bug real encontrado no botão "Reconectar" (explica 1 das 3 falhas)**: `reconnectAndTrack` lê
+    `sessionProvider` (Riverpod) antes de agir; num teste de widget que renderiza só `ConnectionBanner`
+    isolado (sem `AppServices`/`GoRouter` por perto), esse provider nunca tinha sido "aquecido" antes do
+    toque no botão — a 1ª leitura disparava a construção do provider *ali mesmo*, devolvendo o valor
+    inicial `NotRegistered` (o placeholder síncrono antes da 1ª emissão do stream chegar), então o botão
+    não fazia nada. Em produção isto nunca acontece (`AppServices` sempre envolve o app inteiro e aquece o
+    provider primeiro), mas o teste isolado expunha exatamente essa lacuna. Corrigido o teste
+    (`platform_helpers_test.dart`) trocando para `pumpApp` — o próprio `GoRouter`, ao resolver a rota
+    inicial, já lê `sessionProvider` do jeito que `AppServices` faria de verdade.
+  - **Teste "registrar de novo limpa a mensagem de sessão inválida" reescrito**: usava uma fake já
+    registrada e chamava `register()` de novo por cima — um cenário ambíguo que não reflete a situação real
+    (sessão inválida confirmada = **sem** identidade/token utilizáveis, não uma re-registro por cima de algo
+    que já funciona). Reescrito partindo de `startRegistered: false`, mais fiel ao caso real e sem a
+    ambiguidade. Não consegui isolar com certeza absoluta a causa exata da falha original nesse teste
+    específico (sem `flutter test` local); esta reformulação é a correção mais defensável que encontrei,
+    não uma reprodução confirmada bit a bit.
+  - Terceiro teste apontado pelo usuário ("e mais 1", não nomeado): não identificado por nome: as duas
+    correções acima (gate correto de `reconnectAndTrack` mantido, mas agora sem o problema de provider frio
+    no teste; `ensureConnected()`) devem cobrir a mesma classe de causa. Se ainda faltar algum, preciso do
+    nome exato do terceiro teste para investigar.
+- **15. KeyStore em arquivo para desktop — entregue.** `platform/file_key_store.dart`: `FileKeyStore`
+  (`extends MapKeyStore`, mesma base de `SecureKeyStore`) grava tudo num único JSON em
+  `getApplicationSupportDirectory()/chatito/keystore.json`, escrita atômica (`.tmp` + rename), permissão
+  `0600` via `chmod` (POSIX — macOS/Linux; sem equivalente ACL no Windows, documentado no código: a proteção
+  lá vem do próprio `%LOCALAPPDATA%` ser exclusivo do usuário). `migrateFrom(KeyStore old)` copia
+  identidade/token/sessão do keystore antigo (keychain) **só se o arquivo ainda estiver vazio** e **nunca
+  apaga** o armazenamento antigo (resquício inofensivo é preferível a arriscar perda de identidade numa
+  migração que falhe no meio). `main.dart`: Android continua com `SecureKeyStore` (Keystore do SO, já
+  robusto); desktop (macOS/Windows/Linux — `PlatformInfo.isDesktop`) usa `FileKeyStore.open()` +
+  `migrateFrom(SecureKeyStore())` na inicialização. Nenhuma cripto caseira: os valores gravados (chave
+  privada `libsodium`, token opaco do servidor) já vêm prontos; o arquivo em si não tenta adicionar outra
+  camada de cifra. Testes em `test/platform/file_key_store_test.dart` (Dart puro, `package:test` — não
+  `flutter_test`, então sem o risco de travar sob o relógio falso: I/O real de disco já se provou seguro
+  nesse tipo de teste em CI, ver item 10): roundtrip de identidade/token/sessão, criação do arquivo em JSON,
+  permissão 0600 (pulado no Windows), `delete`/`clear`, arquivo corrompido não trava, migração (copia
+  quando vazio, não sobrescreve quando já tem dado, não faz nada se a origem também está vazia).
 ## Em andamento
-- (nada) — itens 11, 12 e 13 commitados e com push feito.
-## Bloqueios (atualização)
-- **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): as execuções mais recentes,
-  incluindo a do item 11, falham em segundos com "recent account payments have failed or your spending
-  limit needs to be increased" antes de rodar qualquer teste. Não hei nada a corrigir do meu lado — o
-  orquestrador precisa resolver em Settings → Billing & plans do GitHub e então re-disparar o CI.
-- `requestReconnect` chama `facade.connect()`; trocar para `facade.ensureConnected()` assim que o app-core
-  adicionar esse método à `ChatFacade` (mencionado na tarefa como já estando em andamento do lado deles) —
-  é uma troca de uma linha em `ui/reconnect.dart`.
+- (nada) — itens 11 a 15 e o merge commitados e com push feito.
 ## Bloqueios
+- **CI ainda bloqueado por faturamento do GitHub Actions** (ver item 10): a última verificação real foi a
+  do item 11; não voltei a checar desde então (mesmo bloqueio, sem motivo pra esperar que tenha mudado).
+- **Item 14 não foi validado por execução real** (nem localmente — Xcode incompleto — nem em CI — billing):
+  só por `flutter analyze --fatal-infos` (limpo) e raciocínio cuidadoso sobre a mecânica do Riverpod/
+  `flutter_test`. O usuário tem `flutter test` funcionando no Mac dele; se ainda sobrar alguma falha depois
+  deste push, preciso do nome exato do(s) teste(s) e, se possível, do texto do erro para não ficar
+  adivinhando de novo.
 - **`flutter test` não roda nesta máquina** (bloqueio pré-existente do app-core, agora afeta toda a suíte
   da UI também porque a árvore de dependências inclui `sodium`): `flutter test` builda native assets para
   **todo** o projeto sempre que qualquer pacote com build hook está no grafo de dependências — mesmo que

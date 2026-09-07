@@ -65,12 +65,13 @@ void main() {
   testWidgets('botão Reconectar da faixa de conexão chama connect()', (
     tester,
   ) async {
+    // Precisa do app inteiro (não só `ConnectionBanner` isolado): o botão
+    // passa por `reconnectAndTrack`, que só age depois que `sessionProvider`
+    // emitiu "registrado" pela 1ª vez — o próprio `GoRouter` (dentro de
+    // `pumpApp`) já provoca essa 1ª leitura ao resolver a rota inicial, do
+    // jeito que aconteceria de verdade dentro do `AppServices` do app real.
     final f = FakeChatFacade(autoReplyDelay: Duration.zero);
-    await pumpScreen(
-      tester,
-      const Scaffold(body: ConnectionBanner()),
-      facade: f,
-    );
+    await pumpApp(tester, facade: f, size: phoneSize);
     expect(find.text(S.offline), findsOneWidget);
     await tester.tap(find.byKey(const Key('reconnect')));
     await tester.pumpAndSettle();

@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:sodium/sodium.dart';
 
 import 'platform/app_services.dart';
+import 'platform/file_key_store.dart';
 import 'platform/platform_info.dart';
 import 'platform/real_chat_facade_provider.dart';
 import 'platform/secure_key_store.dart';
@@ -22,7 +23,7 @@ Future<void> main() async {
 
   final sodium = await SodiumInit.init();
   final db = ChatDatabase(driftDatabase(name: 'chatito'));
-  final keyStore = SecureKeyStore();
+  final keyStore = await _openKeyStore(platform);
 
   runApp(
     ProviderScope(
@@ -38,6 +39,18 @@ Future<void> main() async {
       child: const MainApp(),
     ),
   );
+}
+
+/// Android usa o Keystore do SO (`SecureKeyStore`, já robusto). No desktop,
+/// usa o keystore em arquivo (`FileKeyStore`) — evita os problemas de
+/// integração com o keychain nativo que já apareceram neste projeto (ex.:
+/// erro -34018 no macOS com assinatura ad-hoc) — migrando dados do keychain
+/// antigo na 1ª execução, se houver.
+Future<KeyStore> _openKeyStore(PlatformInfo platform) async {
+  if (!platform.isDesktop) return SecureKeyStore();
+  final fileStore = await FileKeyStore.open();
+  await fileStore.migrateFrom(SecureKeyStore());
+  return fileStore;
 }
 
 class MainApp extends ConsumerWidget {

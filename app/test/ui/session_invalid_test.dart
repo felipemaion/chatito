@@ -153,10 +153,17 @@ void main() {
   testWidgets('registrar de novo limpa a mensagem de sessão inválida', (
     tester,
   ) async {
-    final f = _FailingConnectFacade(autoReplyDelay: Duration.zero);
+    // Sem sessão local nenhuma (o cenário real de "sessão inválida confirmada":
+    // não há mais identidade/token utilizáveis) — registrar de novo é a única
+    // saída, e precisa limpar a mensagem depois de funcionar.
+    final f = _FailingConnectFacade(
+      autoReplyDelay: Duration.zero,
+      startRegistered: false,
+    );
     final container = await _pumpApp(tester, f);
     container.read(sessionInvalidProvider.notifier).set(true);
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('onboarding')), findsOneWidget);
     expect(find.byKey(const Key('session-invalid')), findsOneWidget);
 
     await tester.enterText(find.byKey(const Key('invite')), '7K3M-9QZR');
