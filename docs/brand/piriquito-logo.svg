@@ -1,39 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Piriquito: periquito verde-amarelo falando -->
+  <!-- Piriquito: periquito-de-encontro-amarelo (Brotogeris chiriri) falando -->
   <defs>
-    <clipPath id="corpo"><ellipse cx="222" cy="340" rx="100" ry="120"/></clipPath>
+    <clipPath id="corpo"><ellipse cx="228" cy="330" rx="92" ry="122" transform="rotate(-18 228 330)"/></clipPath>
+    <clipPath id="cabeca"><circle cx="302" cy="190" r="70"/></clipPath>
   </defs>
-  <!-- cauda (atrás do corpo) -->
-  <path d="M175 420 L105 505 Q130 510 150 490 L180 455 Z" fill="#2F6FB3"/>
-  <path d="M190 428 L140 510 Q165 512 178 492 L205 450 Z" fill="#3E8FD8"/>
+  <!-- cauda (atrás) -->
+  <path d="M175 395 L30 492 Q46 504 66 494 L192 425 Z" fill="#3A9E2E"/>
+  <path d="M188 410 L58 508 Q80 512 96 500 L208 438 Z" fill="#2F6FB3"/>
+  <!-- pescoço -->
+  <ellipse cx="262" cy="252" rx="62" ry="56" fill="#5CC647"/>
   <!-- corpo -->
-  <ellipse cx="222" cy="340" rx="100" ry="120" fill="#5FBF4A"/>
+  <ellipse cx="228" cy="330" rx="92" ry="122" transform="rotate(-18 228 330)" fill="#4CBB3A"/>
   <g clip-path="url(#corpo)">
-    <ellipse cx="255" cy="365" rx="70" ry="95" fill="#8ED96B"/>
-    <ellipse cx="160" cy="340" rx="58" ry="105" transform="rotate(12 160 340)" fill="#3E9E3A"/>
-    <path d="M140 300 q26 -14 52 0 M132 342 q26 -14 52 0 M138 384 q22 -14 44 0" stroke="#2B5D28" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <ellipse cx="276" cy="378" rx="74" ry="104" transform="rotate(-18 276 378)" fill="#72D45A"/>
+    <!-- asa -->
+    <ellipse cx="172" cy="340" rx="48" ry="112" transform="rotate(-14 172 340)" fill="#3A9E2E"/>
+    <ellipse cx="146" cy="408" rx="22" ry="52" transform="rotate(-14 146 408)" fill="#2F6FB3"/>
+    <!-- encontro amarelo -->
+    <ellipse cx="212" cy="286" rx="20" ry="38" transform="rotate(-28 212 286)" fill="#E9E43C"/>
   </g>
-  <!-- poleiro e pés -->
-  <path d="M120 472 H340" stroke="#8D6E63" stroke-width="16" stroke-linecap="round"/>
-  <path d="M205 452 q-4 22 -14 30 M205 452 q6 22 16 30 M245 452 q-4 22 -14 30 M245 452 q6 22 16 30" stroke="#E8A24A" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <!-- poleiro -->
+  <path d="M150 474 Q270 452 440 460" stroke="#6D4C41" stroke-width="24" stroke-linecap="round" fill="none"/>
+  <path d="M190 462 q20 -8 40 0 M330 452 q22 -8 44 0" stroke="#5D4037" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <!-- pés -->
+  <path d="M236 434 q-6 24 -18 32 M236 434 q8 22 22 30 M282 428 q-6 24 -18 32 M282 428 q8 22 22 30" stroke="#E9A9A2" stroke-width="9" fill="none" stroke-linecap="round"/>
   <!-- cabeça -->
-  <circle cx="268" cy="210" r="78" fill="#F6D33C"/>
-  <path d="M212 168 q18 -11 36 0 M203 200 q18 -11 36 0 M208 232 q16 -11 32 0" stroke="#2B2B2B" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.7"/>
-  <!-- bochecha -->
-  <circle cx="306" cy="256" r="12" fill="#5B6EE1"/>
+  <circle cx="302" cy="190" r="70" fill="#5CC647"/>
+  <g clip-path="url(#cabeca)">
+    <ellipse cx="330" cy="200" rx="52" ry="66" fill="#86DE66"/>
+  </g>
   <!-- olho -->
-  <circle cx="300" cy="192" r="17" fill="#FFFFFF"/>
-  <circle cx="304" cy="193" r="10" fill="#1E1E1E"/>
-  <circle cx="308" cy="188" r="4" fill="#FFFFFF"/>
-  <!-- bico em gancho, aberto (falando) -->
-  <path d="M334 228 L364 252 L354 260 L330 238 Z" fill="#5C1F14"/>
-  <path d="M330 238 L354 260 C350 272 338 274 334 268 C328 258 328 248 330 238 Z" fill="#D9843A"/>
-  <path d="M328 192 C352 182 382 196 380 220 C379 232 372 244 364 252 L334 228 C329 218 327 204 328 192 Z" fill="#F2A04D"/>
-  <path d="M340 198 C356 192 370 200 374 212" stroke="#FFC978" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.8"/>
-  <ellipse cx="334" cy="196" rx="9" ry="6" fill="#7FB3E6"/>
+  <circle cx="333" cy="172" r="14" fill="#FFFFFF"/>
+  <circle cx="335" cy="173" r="10" fill="#2B2B2B"/>
+  <circle cx="339" cy="169" r="3.5" fill="#FFFFFF"/>
+  <!-- bico rosado em gancho, aberto (falando) -->
+  <path d="M358 190 L386 212 L378 220 L354 200 Z" fill="#7A2E2E"/>
+  <path d="M354 200 L378 220 C374 232 362 234 358 228 C352 220 352 210 354 200 Z" fill="#D98577"/>
+  <path d="M352 158 C376 150 400 166 396 190 C395 202 390 212 386 216 L358 190 C353 180 351 168 352 158 Z" fill="#F2A28E"/>
+  <path d="M362 164 C376 160 388 168 392 180" stroke="#FFD1C4" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.9"/>
   <!-- balão de fala -->
-  <path d="M362 40 H478 a30 30 0 0 1 30 30 V128 a30 30 0 0 1 -30 30 H412 L376 200 L384 158 H362 a30 30 0 0 1 -30 -30 V70 a30 30 0 0 1 30 -30 Z" fill="#2E7D32"/>
-  <circle cx="386" cy="99" r="11" fill="#FFFFFF"/>
-  <circle cx="420" cy="99" r="11" fill="#FFFFFF"/>
-  <circle cx="454" cy="99" r="11" fill="#FFFFFF"/>
+  <path d="M372 30 H478 a28 28 0 0 1 28 28 V112 a28 28 0 0 1 -28 28 H426 L402 176 L404 140 H372 a28 28 0 0 1 -28 -28 V58 a28 28 0 0 1 28 -28 Z" fill="#1B5E20"/>
+  <circle cx="394" cy="85" r="10" fill="#FFFFFF"/>
+  <circle cx="425" cy="85" r="10" fill="#FFFFFF"/>
+  <circle cx="456" cy="85" r="10" fill="#FFFFFF"/>
 </svg>
