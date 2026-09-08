@@ -5,6 +5,11 @@ Fonte única de "onde estamos". Histórico por agente em `docs/status/<agente>.m
 ## Funciona hoje
 - **Nome**: o projeto chamava-se Chatito até 2026-09-08 (PR #15). O repo antigo redireciona; imagens, volumes
   e apps instalados com o nome antigo não são migrados.
+- **Site + downloads**: `https://piriquito.maionesys.com/` (servido pelo relay, `server/internal/site`),
+  lista as releases do GitHub. **Release v0.1.0 publicada** (APK assinado, .dmg, .zip, SHA256SUMS).
+  Keystore Android em `~/.config/piriquito/piriquito-upload.jks` + `key.properties` (senhas) no Mac do Felipe
+  — guardar no gerenciador de senhas; perder = não atualiza por cima.
+- **Push FCM ligado** em produção (`push:true`; projeto Firebase `piriquito-1b977`, pacote `com.maionesys.piriquito`).
 - **Relay em produção**: `https://piriquito.maionesys.com` (Oracle, container `piriquito-relay` atrás de
   Cloudflare + Caddy; CD pelo `deploy.yml` a cada push em `main` que toque `server/`, `docker/`, `cron/`).
   Operação do servidor: orquestrador da sessão tmux `Oracle` (regras em `~/Projects/OracleServer/SERVER.md`).
@@ -29,9 +34,9 @@ uma vez: a faixa "Servidor não configurado" leva até lá).
 ## Pendências
 | Item | Dono | Observação |
 | --- | --- | --- |
+| Reinstalar nos celulares o APK **assinado** da v0.1.0 (o instalado é assinado com chave debug, não atualiza por cima) | Felipe | `adb uninstall com.maionesys.piriquito` + instalar `piriquito-v0.1.0-android.apk`; se já fez onboarding, pedir convite novo |
+| Teste instável `TestMalformedFrameClosesWithError` (ws) na CI | server | falhou 1× no PR #18, passou ao reexecutar |
 | Onboarding no app novo (A26, S8, Mac) em **produção** (2026-09-08) | Felipe | APK Piriquito instalado no A26 e no S8 (o Chatito antigo continua ao lado até desinstalar); Mac usa `Piriquito.app`. Build release já vem com `https://piriquito.maionesys.com` como servidor padrão. Convites: Felipe `A0QP-KYAN` (válido até 2026-09-15); Mãe: pedido ao orquestrador do Oracle |
-| Release `v0.1.0` (APK assinado, `.dmg`, `.zip`) via `release.yml` | orquestrador | precisa de keystore Android (README › Release) |
-| Firebase (push com app fechado) | Felipe + infra | `docs/ops/FIREBASE.md` |
 | Remover aparelhos "Mac" órfãos | Felipe | Ajustes → Meus aparelhos |
 | Rotação de chave (`key_change` emitido) | app-core | v1 só detecta troca pelo diretório |
 | Histórico do git contém o IP do Oracle | Felipe decide | `git filter-repo` + force push, se quiser |
