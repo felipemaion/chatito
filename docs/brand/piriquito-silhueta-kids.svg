@@ -1,8 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#FFF6D6"/>
-  <g transform="translate(30 30) scale(0.883)">
-  <g transform="translate(16.00 116.70) scale(0.86957)">
-<defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 72 506 355">
+  <defs>
     <linearGradient id="corpo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F8F1E"/><stop offset="0.5" stop-color="#5FC93C"/><stop offset="1" stop-color="#A9EA6C"/>
     </linearGradient>
     <radialGradient id="brilho" cx="0.62" cy="0.6" r="0.42">
@@ -227,16 +224,4 @@
   <path d="M467 138 C486 128 504 140 502 158 C501 170 497 178 493 183 L470 165 C465 156 464 146 467 138 Z" fill="url(#rosa)" stroke="#1E6B1E" stroke-width="3" stroke-linejoin="round"/>
   <path d="M472 166 Q482 172 491 182" fill="none" stroke="#1E6B1E" stroke-width="3" stroke-linecap="round"/>
   <path d="M474 143 C482 138 492 142 496 150" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
-  </g>
-  <!-- balão de fala -->
-  <path d="M322 36 H478 a28 28 0 0 1 28 28 V120 a28 28 0 0 1 -28 28 H430 L432 190 L392 148 H322 a28 28 0 0 1 -28 -28 V64 a28 28 0 0 1 28 -28 Z" fill="#1E6B1E"/>
-  <path d="M400 76 c-10 -12 -28 -4 -26 10 c2 12 26 26 26 26 s24 -14 26 -26 c2 -14 -16 -22 -26 -10 z" fill="#FF7A90"/>
-  <circle cx="352" cy="92" r="9" fill="#FFFFFF"/><circle cx="448" cy="92" r="9" fill="#FFFFFF"/>
-  <!-- brilhinhos -->
-  <g fill="#FFD54A">
-    <path d="M292 176 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z"/>
-    <path d="M498 192 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
-    <path d="M60 300 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
-  </g>
-  </g>
 </svg>
