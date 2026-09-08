@@ -22,3 +22,14 @@ func TestHealthHandler(t *testing.T) {
 		t.Fatalf("status field = %q, want ok", body["status"])
 	}
 }
+
+func TestRootServesPublicSite(t *testing.T) {
+	rec := httptest.NewRecorder()
+	New(Options{}).Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET / = %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "text/html; charset=utf-8" {
+		t.Fatalf("content-type = %q", ct)
+	}
+}

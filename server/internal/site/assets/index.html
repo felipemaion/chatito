@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piriquito — o mensageiro privado da família</title>
+<meta name="description" content="Piriquito é um mensageiro privado para a família: criptografia de ponta a ponta, servidor cego, sem anúncios, para Android, macOS e Windows.">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#106B1F">
+<meta property="og:title" content="Piriquito — o mensageiro privado da família">
+<meta property="og:description" content="Criptografia de ponta a ponta, servidor cego, só quem foi convidado. Android, macOS e Windows.">
+<meta property="og:image" content="/icon.svg">
+<style>
+  :root {
+    --green-900: #0B4A16;
+    --green-700: #106B1F;
+    --green-500: #2E9A3A;
+    --green-300: #7ED66A;
+    --green-100: #DCF3D3;
+    --green-050: #EEF8E9;
+    --ink: #10221A;
+    --ink-2: #3E5247;
+    --ink-3: #6B7F73;
+    --paper: #FBFDF9;
+    --card: #FFFFFF;
+    --line: #D9E7D4;
+    --accent: #F2B84B;
+    --shadow: 0 1px 2px rgba(16, 34, 26, .06), 0 12px 32px -16px rgba(16, 107, 31, .25);
+    --radius: 18px;
+    --max: 1120px;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #EAF3E8;
+      --ink-2: #B8C9BB;
+      --ink-3: #86998B;
+      --paper: #0D1710;
+      --card: #142219;
+      --line: #22392A;
+      --green-050: #14251A;
+      --green-100: #1B3322;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 12px 32px -16px rgba(0, 0, 0, .6);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { animation: none !important; transition: none !important; } }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  a { color: var(--green-700); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+  h1, h2, h3 { line-height: 1.15; letter-spacing: -.01em; margin: 0; }
+  h2 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.3rem); }
+  h3 { font-size: 1.15rem; }
+  .muted { color: var(--ink-2); }
+  .eyebrow { display: inline-block; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--green-500); margin-bottom: 12px; }
+
+  /* header */
+  header.top { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(160%) blur(10px); background: color-mix(in srgb, var(--paper) 82%, transparent); border-bottom: 1px solid var(--line); }
+  header.top .wrap { display: flex; align-items: center; gap: 20px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; color: var(--ink); }
+  .brand img { width: 34px; height: 34px; }
+  nav.main { margin-left: auto; display: flex; gap: 22px; font-weight: 600; font-size: .95rem; }
+  nav.main a { color: var(--ink-2); }
+  nav.main a:hover { color: var(--green-700); text-decoration: none; }
+  @media (max-width: 640px) { nav.main a:not(.cta) { display: none; } }
+
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px; font-weight: 700; border: 2px solid transparent; transition: transform .12s ease, box-shadow .12s ease, background .12s ease; cursor: pointer; }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); }
+  .btn-primary { background: var(--green-700); color: #fff; box-shadow: 0 8px 20px -10px var(--green-700); }
+  .btn-primary:hover { background: var(--green-900); }
+  .btn-ghost { border-color: var(--line); color: var(--ink); background: var(--card); }
+  .btn-ghost:hover { border-color: var(--green-500); }
+  .btn svg { width: 18px; height: 18px; }
+  nav.main .cta { padding: 8px 16px; font-size: .9rem; color: #fff; }
+
+  /* hero */
+  .hero { position: relative; overflow: hidden; padding: 72px 0 56px; }
+  .hero::before { content: ""; position: absolute; inset: -40% -20% auto -20%; height: 120%; background: radial-gradient(60% 50% at 70% 40%, var(--green-100) 0%, transparent 70%); pointer-events: none; }
+  .hero .wrap { position: relative; display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; }
+  .hero h1 { font-size: clamp(2.6rem, 1.6rem + 4.5vw, 4.6rem); font-weight: 900; }
+  .hero h1 span { color: var(--green-700); }
+  .hero .lead { font-size: 1.2rem; max-width: 52ch; margin: 20px 0 30px; }
+  .hero .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .hero .art { display: grid; place-items: center; }
+  .hero .art img { width: min(100%, 460px); height: auto; filter: drop-shadow(0 24px 40px rgba(16, 107, 31, .25)); animation: float 6s ease-in-out infinite; }
+  @keyframes float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+  .facts { display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 28px; font-size: .92rem; color: var(--ink-2); }
+  .facts span::before { content: "✓"; color: var(--green-500); font-weight: 800; margin-right: 8px; }
+  @media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; } .hero .art { order: -1; } .hero .art img { width: min(70%, 320px); } .hero { padding-top: 40px; } }
+
+  /* sections */
+  section { padding: 64px 0; }
+  section + section { border-top: 1px solid var(--line); }
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-top: 32px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+  .card .ico { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--green-050); color: var(--green-700); margin-bottom: 14px; }
+  .card .ico svg { width: 24px; height: 24px; }
+  .card p { margin: 8px 0 0; color: var(--ink-2); font-size: .98rem; }
+
+  .steps { counter-reset: s; display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 32px; }
+  .step { position: relative; padding: 24px 24px 24px 72px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); }
+  .step::before { counter-increment: s; content: counter(s); position: absolute; left: 22px; top: 22px; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--green-700); color: #fff; font-weight: 800; }
+  .step p { margin: 6px 0 0; color: var(--ink-2); font-size: .98rem; }
+
+  /* downloads */
+  .dl-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 32px; }
+  .dl { display: flex; flex-direction: column; gap: 10px; }
+  .dl .plat { display: flex; align-items: center; gap: 12px; }
+  .dl .plat svg { width: 30px; height: 30px; color: var(--green-700); }
+  .dl .meta { font-size: .9rem; color: var(--ink-3); min-height: 1.4em; }
+  .dl .btn { margin-top: auto; align-self: flex-start; }
+  .dl .btn[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+  .status { margin-top: 18px; padding: 12px 16px; border-radius: 12px; background: var(--green-050); color: var(--ink-2); font-size: .95rem; }
+  .status.err { background: #FDECEC; color: #7A1F1F; }
+  @media (prefers-color-scheme: dark) { .status.err { background: #3A1A1A; color: #F5B5B5; } }
+  details.versions { margin-top: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+  details.versions summary { cursor: pointer; padding: 16px 22px; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 10px; }
+  details.versions summary::-webkit-details-marker { display: none; }
+  details.versions summary::before { content: "▸"; color: var(--green-500); transition: transform .15s; }
+  details[open].versions summary::before { transform: rotate(90deg); }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align: left; padding: 12px 22px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; }
+  td .assets { display: flex; flex-wrap: wrap; gap: 8px; }
+  td .assets a { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: .85rem; background: var(--green-050); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--green-100); color: var(--green-900); font-size: .78rem; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+  @media (prefers-color-scheme: dark) { .tag { color: var(--green-300); } }
+  .table-wrap { overflow-x: auto; }
+
+  .install { margin-top: 28px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); font-size: .95rem; }
+  .install div { background: var(--green-050); border-radius: 14px; padding: 16px 18px; color: var(--ink-2); }
+  .install b { color: var(--ink); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; background: var(--green-100); padding: 1px 6px; border-radius: 6px; }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--ink-3); font-size: .92rem; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; }
+  footer .brand { font-size: 1rem; }
+  footer .links { margin-left: auto; display: flex; gap: 20px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#topo"><img src="/icon.svg" alt="" width="34" height="34">Piriquito</a>
+    <nav class="main" aria-label="Principal">
+      <a href="#sobre">Sobre</a>
+      <a href="#como">Como funciona</a>
+      <a href="https://github.com/felipemaion/piriquito" rel="noopener">GitHub</a>
+      <a class="btn btn-primary cta" href="#download">Baixar</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="topo">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">Mensageiro da família</span>
+        <h1>Conversa em família, <span>só entre a família.</span></h1>
+        <p class="lead muted">O Piriquito é um app de mensagens privado para quem você convida. Texto, fotos, vídeos e arquivos com criptografia de ponta a ponta, num servidor que não consegue ler nada.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="#download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            Baixar o app
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/felipemaion/piriquito" rel="noopener">Código aberto no GitHub</a>
+        </div>
+        <div class="facts">
+          <span>Android, macOS e Windows</span>
+          <span>Sem anúncios, sem rastreio</span>
+          <span>Entra só quem foi convidado</span>
+        </div>
+      </div>
+      <div class="art"><img src="/logo.svg" alt="Periquito verde falando, com um balão de fala" width="460" height="296"></div>
+    </div>
+  </section>
+
+  <section id="sobre">
+    <div class="wrap">
+      <span class="eyebrow">Por que o Piriquito</span>
+      <h2>Feito para uma família, não para bilhões de usuários.</h2>
+      <p class="muted" style="max-width:64ch;margin-top:12px">Nada de conta com número de telefone, contatos varridos ou algoritmo de engajamento. Um servidor pequeno, um grupo pequeno, e a certeza de que a conversa fica entre vocês.</p>
+      <div class="grid">
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+          <h3>Criptografia de ponta a ponta</h3>
+          <p>Cada mensagem e cada arquivo são cifrados no seu aparelho com libsodium e só abrem no aparelho de quem recebe.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.1A10.4 10.4 0 0 1 12 5c5 0 9 4 10 7-.4 1.2-1.2 2.5-2.3 3.6M6.2 6.2C4 7.7 2.6 9.8 2 12c1 3 5 7 10 7 1.5 0 2.9-.3 4.1-.9"/></svg></div>
+          <h3>Servidor cego</h3>
+          <p>O relay só guarda envelopes fechados até serem entregues. Ele não vê texto, nomes de arquivo nem com quem você fala.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+          <h3>Só por convite</h3>
+          <p>Ninguém entra por telefone ou e-mail. Quem administra gera um código de uso único e você confere o número de segurança pessoalmente.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/><path d="M7 14l3-3 2 2 4-4 2 2"/></svg></div>
+          <h3>Fotos, vídeos e arquivos</h3>
+          <p>Anexe da galeria ou do disco. Os arquivos sobem em pedaços cifrados e ficam guardados só até todo mundo baixar.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="13" height="10" rx="2"/><rect x="17" y="8" width="5" height="11" rx="1.5"/><path d="M5 19h7"/></svg></div>
+          <h3>No celular e no computador</h3>
+          <p>Android, macOS e Windows com o mesmo app. Vários aparelhos por pessoa, cada um com as próprias chaves.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div>
+          <h3>Código aberto</h3>
+          <p>Servidor em Go e app em Flutter, com testes e protocolo documentado. Qualquer pessoa pode ler, auditar e rodar o seu.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="como">
+    <div class="wrap">
+      <span class="eyebrow">Como funciona</span>
+      <h2>Três passos e a família está dentro.</h2>
+      <div class="steps">
+        <div class="step"><h3>Receba um convite</h3><p>Quem administra o servidor gera um código de oito letras, válido por sete dias e usado uma vez só.</p></div>
+        <div class="step"><h3>Instale e entre</h3><p>Baixe o app abaixo, digite o código e dê um nome ao aparelho. As chaves são criadas ali mesmo e nunca saem dele.</p></div>
+        <div class="step"><h3>Confira e converse</h3><p>Compare o número de segurança pessoalmente com cada pessoa. Pronto: grupo da família, conversas diretas, fotos e arquivos.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <span class="eyebrow">Download</span>
+      <h2>Baixe o Piriquito <span class="tag" id="latest-tag" hidden></span></h2>
+      <p class="muted" style="max-width:64ch;margin-top:12px">Os instaladores são publicados nas releases do GitHub. Esta página mostra sempre a versão mais recente e mantém o histórico de todas as versões.</p>
+
+      <div class="dl-grid" id="dl-cards">
+        <div class="card dl" data-plat="android">
+          <div class="plat"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 8.5l1.6-2.8a.4.4 0 0 0-.7-.4l-1.6 2.8A9.5 9.5 0 0 0 12 7c-1.7 0-3.3.4-4.8 1.1L5.6 5.3a.4.4 0 0 0-.7.4l1.6 2.8A8.9 8.9 0 0 0 2 16h20a8.9 8.9 0 0 0-4.5-7.5zM7.5 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm9 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg><h3>Android</h3></div>
+          <div class="meta">APK para Android 8 ou superior</div>
+          <a class="btn btn-primary" href="https://github.com/felipemaion/piriquito/releases" aria-disabled="true">Baixar APK</a>
+        </div>
+        <div class="card dl" data-plat="macos">
+          <div class="plat"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.5 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.8-1.7 0-3.2 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.6-1-2.6-3.8zM14 5.3c.7-.8 1.1-1.9 1-3-1 0-2.1.6-2.8 1.4-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.5 2.8-1.3z"/></svg><h3>macOS</h3></div>
+          <div class="meta">Imagem .dmg para Apple Silicon e Intel</div>
+          <a class="btn btn-primary" href="https://github.com/felipemaion/piriquito/releases" aria-disabled="true">Baixar .dmg</a>
+        </div>
+        <div class="card dl" data-plat="windows">
+          <div class="plat"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3v-6zm8.5-1.2L21 3v8.5h-9.5V4.3zM3 12.5h7.5v7L3 18.5v-6zm8.5 0H21V21l-9.5-1.3v-7.2z"/></svg><h3>Windows</h3></div>
+          <div class="meta">Pasta .zip, sem instalador</div>
+          <a class="btn btn-primary" href="https://github.com/felipemaion/piriquito/releases" aria-disabled="true">Baixar .zip</a>
+        </div>
+      </div>
+
+      <div class="status" id="dl-status">Consultando as releases…</div>
+
+      <details class="versions" id="versions" hidden>
+        <summary>Todas as versões</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Versão</th><th>Data</th><th>Arquivos</th></tr></thead>
+            <tbody id="versions-body"></tbody>
+          </table>
+        </div>
+      </details>
+
+      <div class="install">
+        <div><b>Android:</b> abra o APK e permita a instalação de fontes desconhecidas quando o sistema perguntar. Atualizações são instaladas por cima, sem perder as conversas.</div>
+        <div><b>macOS:</b> abra o .dmg e arraste o Piriquito para Aplicativos. Na primeira vez, clique com o botão direito → Abrir, porque o app ainda não é notarizado pela Apple.</div>
+        <div><b>Windows:</b> extraia o .zip numa pasta e execute <code>piriquito.exe</code>. O SmartScreen pode pedir confirmação na primeira execução.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="brand"><img src="/icon.svg" alt="" width="26" height="26">Piriquito</span>
+    <span>Feito com carinho para a família Maion.</span>
+    <span class="links">
+      <a href="https://github.com/felipemaion/piriquito" rel="noopener">GitHub</a>
+      <a href="https://github.com/felipemaion/piriquito/blob/main/docs/PROTOCOL.md" rel="noopener">Protocolo</a>
+      <a href="/healthz">Status do servidor</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const REPO = 'felipemaion/piriquito';
+  const status = document.getElementById('dl-status');
+  const cards = document.querySelectorAll('#dl-cards .dl');
+  const suffix = { android: '-android.apk', macos: '-macos.dmg', windows: '-windows.zip' };
+  const fmtDate = iso => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const fmtSize = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.round(b / 1024) + ' KB';
+  const pick = (assets, plat) => assets.find(a => a.name.endsWith(suffix[plat]));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=30', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => { if (!r.ok) throw new Error('GitHub respondeu ' + r.status); return r.json(); })
+    .then(rel => {
+      const releases = rel.filter(r => !r.draft);
+      if (!releases.length) {
+        status.textContent = 'Ainda não há uma versão publicada. Os instaladores aparecem aqui assim que a primeira release sair.';
+        return;
+      }
+      const latest = releases.find(r => !r.prerelease) || releases[0];
+      const tag = document.getElementById('latest-tag');
+      tag.textContent = latest.tag_name; tag.hidden = false;
+      let have = 0;
+      cards.forEach(card => {
+        const a = pick(latest.assets, card.dataset.plat);
+        const btn = card.querySelector('.btn');
+        const meta = card.querySelector('.meta');
+        if (a) {
+          have++;
+          btn.href = a.browser_download_url; btn.removeAttribute('aria-disabled');
+          meta.textContent = latest.tag_name + ' · ' + fmtDate(latest.published_at) + ' · ' + fmtSize(a.size);
+        } else {
+          meta.textContent += ' — não incluído em ' + latest.tag_name;
+          btn.href = latest.html_url;
+        }
+      });
+      status.textContent = have
+        ? 'Versão mais recente: ' + latest.tag_name + ', publicada em ' + fmtDate(latest.published_at) + '.'
+        : 'A release ' + latest.tag_name + ' ainda não tem instaladores anexados.';
+
+      const body = document.getElementById('versions-body');
+      releases.forEach(r => {
+        const tr = document.createElement('tr');
+        const assets = r.assets.length
+          ? r.assets.map(a => '<a href="' + esc(a.browser_download_url) + '">' + esc(a.name.replace('piriquito-', '')) + ' <span class="muted">(' + fmtSize(a.size) + ')</span></a>').join('')
+          : '<span class="muted">sem arquivos</span>';
+        tr.innerHTML = '<td><a href="' + esc(r.html_url) + '">' + esc(r.tag_name) + '</a>'
+          + (r === latest ? '<span class="tag">atual</span>' : '') + (r.prerelease ? '<span class="tag">prévia</span>' : '') + '</td>'
+          + '<td>' + fmtDate(r.published_at) + '</td><td><div class="assets">' + assets + '</div></td>';
+        body.appendChild(tr);
+      });
+      document.getElementById('versions').hidden = false;
+    })
+    .catch(err => {
+      status.className = 'status err';
+      status.innerHTML = 'Não consegui consultar as releases agora (' + esc(err.message) + '). Veja direto no <a href="https://github.com/' + REPO + '/releases">GitHub</a>.';
+      cards.forEach(c => c.querySelector('.btn').removeAttribute('aria-disabled'));
+    });
+})();
+</script>
+</body>
+</html>
