@@ -3,6 +3,8 @@
 Fonte única de "onde estamos". Histórico por agente em `docs/status/<agente>.md`.
 
 ## Funciona hoje
+- **Nome**: o projeto chamava-se Chatito até 2026-09-08 (PR #15). O repo antigo redireciona; imagens, volumes
+  e apps instalados com o nome antigo não são migrados.
 - **Relay** (Go) em Docker local, projeto `piriquito`, `127.0.0.1:8080` (exposto na LAN via override
   quando necessário). Bootstrap/convites: `docker compose -f docker/docker-compose.dev.yml exec -T relay /relay admin invite --user NOME`.
 - **App** (Flutter) em `main`: Android (APK arm64 release, `flutter build apk --release --split-per-abi`),
@@ -22,6 +24,7 @@ uma vez: a faixa "Servidor não configurado" leva até lá).
 ## Pendências
 | Item | Dono | Observação |
 | --- | --- | --- |
+| Reinstalar o app nos aparelhos (A26, S8, Mac) após a renomeação para Piriquito (2026-09-08) | Felipe | `applicationId`/bundle id mudaram para `br.com.maion.piriquito`: o app antigo (Chatito) fica ao lado; gerar convites novos e refazer o onboarding; depois desinstalar o antigo |
 | Release `v0.1.0` (APK assinado, `.dmg`, `.zip`) via `release.yml` | orquestrador | precisa de keystore Android (README › Release) |
 | Firebase (push com app fechado) | Felipe + infra | `docs/ops/FIREBASE.md` |
 | Domínio + deploy no Oracle (Fase 4) | Felipe + infra | `docs/ops/RUNBOOK.md`; sem isso o app só funciona na Wi-Fi do Mac |
