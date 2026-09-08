@@ -125,7 +125,7 @@ number** presencialmente com cada pessoa (Ajustes → Verificar chave).
 ## Configurar o servidor no app
 
 No onboarding o app pede o código de convite, o nome do aparelho e a **URL do servidor**
-(`http://<ip>:8080` na Wi-Fi local; `https://<domínio>` após o deploy). A URL fica gravada e pode ser
+(build release já vem com `https://piriquito.maionesys.com`; em dev, `http://<ip>:8080` na Wi-Fi local). A URL fica gravada e pode ser
 trocada em **Ajustes → Servidor**. Se aparecer a faixa "Servidor não configurado", toque em Ajustes.
 
 ## Depuração em campo (Android por USB)

@@ -61,4 +61,28 @@ void main() {
       expect(container.read(serverConfiguredProvider), isTrue);
     });
   });
+
+  group('defaultServerUrl', () {
+    const android = PlatformInfo(
+      name: 'android',
+      isDesktop: false,
+      isAndroid: true,
+    );
+    const macos = PlatformInfo(
+      name: 'macos',
+      isDesktop: true,
+      isAndroid: false,
+    );
+
+    test('release aponta para o relay de produção em qualquer plataforma', () {
+      expect(defaultServerUrl(android, release: true), productionServerUrl);
+      expect(defaultServerUrl(macos, release: true), productionServerUrl);
+      expect(productionServerUrl, 'https://piriquito.maionesys.com');
+    });
+
+    test('debug usa o relay local (alias do emulador no Android)', () {
+      expect(defaultServerUrl(android, release: false), 'http://10.0.2.2:8080');
+      expect(defaultServerUrl(macos, release: false), 'http://127.0.0.1:8080');
+    });
+  });
 }
