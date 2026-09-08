@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: server } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with: { go-version-file: server/go.mod, cache-dependency-path: server/go.sum }
       - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
-      - uses: golangci/golangci-lint-action@v8
+      - uses: golangci/golangci-lint-action@v9
         with: { working-directory: server, version: v2.5 }
       - run: go test ./... -race && go test ./internal/... -race -coverprofile=coverage.out -covermode=atomic
       - name: coverage gate (>= 80%)
