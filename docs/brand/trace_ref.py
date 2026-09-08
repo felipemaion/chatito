@@ -38,9 +38,6 @@ out=['<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 30 1010 650">',
      '  <circle cx="628" cy="162" r="6.5" fill="#FFFFFF"/>',
      '  <!-- balão -->',
      f'  <path d="M886 52 C960 52 1010 96 1010 152 C1010 206 960 250 886 250 C862 250 840 246 822 238 L772 262 L796 220 C774 202 762 178 762 152 C762 96 812 52 886 52 Z" fill="#FFFFFF" stroke="{G}" stroke-width="12" stroke-linejoin="round"/>',
-     f'  <g fill="none" stroke="{G}" stroke-width="13" stroke-linecap="round">',
-     '    <path d="M842 118 Q818 155 842 192"/><path d="M930 118 Q954 155 930 192"/>',
-     '  </g>',
-     f'  <g fill="{G}"><circle cx="862" cy="170" r="9"/><circle cx="886" cy="170" r="9"/><circle cx="910" cy="170" r="9"/></g>',
+     f'  <g fill="{G}"><circle cx="852" cy="152" r="12"/><circle cx="886" cy="152" r="12"/><circle cx="920" cy="152" r="12"/></g>',
      '</svg>']
 open(S+'/flat.svg','w').write('\n'.join(out)); print('svg ok',file=sys.stderr)

@@ -1,7 +1,7 @@
 # Marca
 
 Logo atual: silhueta chapada em verde (`#106B1F`) com penas em negativo branco, olho vazado e
-balão contornado com "(...)".
+balão contornado com três pontos.
 
 - `piriquito-logo.svg` / `.png` — marca principal (pássaro + balão), fundo transparente.
 - `piriquito-icon.svg` / `.png` — variante para ícone de app (fundo arredondado claro).
