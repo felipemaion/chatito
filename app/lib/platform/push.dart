@@ -43,7 +43,7 @@ class FirebasePushWaker implements PushWaker {
       await Firebase.initializeApp();
     } catch (e) {
       debugPrint(
-        'chatito: Firebase indisponível (sem google-services.json?): $e',
+        'piriquito: Firebase indisponível (sem google-services.json?): $e',
       );
       return;
     }
@@ -58,7 +58,7 @@ class FirebasePushWaker implements PushWaker {
       });
       FirebaseMessaging.onMessageOpenedApp.listen((_) => onWake());
     } catch (e) {
-      debugPrint('chatito: push desativado: $e');
+      debugPrint('piriquito: push desativado: $e');
     }
   }
 }

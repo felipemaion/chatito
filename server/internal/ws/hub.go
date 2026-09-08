@@ -13,8 +13,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/felipemaion/chatito/server/internal/api"
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 // Close codes specific to the protocol (docs/PROTOCOL.md §4).

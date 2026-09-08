@@ -9,7 +9,7 @@ on:
 
 env:
   FLUTTER_VERSION: 3.47.2
-  IMAGE: ghcr.io/felipemaion/chatito-relay
+  IMAGE: ghcr.io/felipemaion/piriquito-relay
 
 permissions:
   contents: read
@@ -57,15 +57,15 @@ jobs:
           printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
             "$KS_FILE" "$SPASS" "$ALIAS" "$KPASS" > android/key.properties
           flutter build apk --release
-          cp build/app/outputs/flutter-apk/app-release.apk "build/chatito-${GITHUB_REF_NAME}-android.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "build/piriquito-${GITHUB_REF_NAME}-android.apk"
           rm -f "$KS_FILE" android/key.properties
       - name: Build APK debug (sem keystore)
         if: steps.mode.outputs.signed != 'true'
         run: |
           flutter build apk --debug
-          cp build/app/outputs/flutter-apk/app-debug.apk "build/chatito-${GITHUB_REF_NAME}-android-debug.apk"
+          cp build/app/outputs/flutter-apk/app-debug.apk "build/piriquito-${GITHUB_REF_NAME}-android-debug.apk"
       - uses: actions/upload-artifact@v4
-        with: { name: android, path: app/build/chatito-*.apk, if-no-files-found: error }
+        with: { name: android, path: app/build/piriquito-*.apk, if-no-files-found: error }
 
   macos:
     runs-on: macos-latest
@@ -79,13 +79,13 @@ jobs:
       - name: Empacotar .dmg (sem notarização)
         run: |
           brew install create-dmg
-          APP="build/macos/Build/Products/Release/chatito.app"
+          APP="build/macos/Build/Products/Release/Piriquito.app"
           test -d "$APP"
-          create-dmg --volname "Chatito" --window-size 500 300 --icon-size 100 \
-            --icon "chatito.app" 125 150 --app-drop-link 375 150 --no-internet-enable \
-            "build/chatito-${GITHUB_REF_NAME}-macos.dmg" "$APP"
+          create-dmg --volname "Piriquito" --window-size 500 300 --icon-size 100 \
+            --icon "Piriquito.app" 125 150 --app-drop-link 375 150 --no-internet-enable \
+            "build/piriquito-${GITHUB_REF_NAME}-macos.dmg" "$APP"
       - uses: actions/upload-artifact@v4
-        with: { name: macos, path: app/build/chatito-*.dmg, if-no-files-found: error }
+        with: { name: macos, path: app/build/piriquito-*.dmg, if-no-files-found: error }
 
   windows:
     runs-on: windows-latest
@@ -100,9 +100,9 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* `
-            -DestinationPath "build/chatito-$env:GITHUB_REF_NAME-windows.zip"
+            -DestinationPath "build/piriquito-$env:GITHUB_REF_NAME-windows.zip"
       - uses: actions/upload-artifact@v4
-        with: { name: windows, path: app/build/chatito-*.zip, if-no-files-found: error }
+        with: { name: windows, path: app/build/piriquito-*.zip, if-no-files-found: error }
 
   server-image:
     runs-on: ubuntu-latest
@@ -140,11 +140,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { path: dist, merge-multiple: true }
       - name: Checksums
-        run: cd dist && sha256sum -- * > "chatito-${GITHUB_REF_NAME}-SHA256SUMS.txt" && cat "chatito-${GITHUB_REF_NAME}-SHA256SUMS.txt"
+        run: cd dist && sha256sum -- * > "piriquito-${GITHUB_REF_NAME}-SHA256SUMS.txt" && cat "piriquito-${GITHUB_REF_NAME}-SHA256SUMS.txt"
       - name: Criar GitHub Release com os binários
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --title "Chatito $GITHUB_REF_NAME" --generate-notes \
+          gh release create "$GITHUB_REF_NAME" --title "Piriquito $GITHUB_REF_NAME" --generate-notes \
             --notes "Imagem do servidor: \`$IMAGE:$GITHUB_REF_NAME\` (linux/amd64, linux/arm64). Ver README → Instalação." \
             dist/*

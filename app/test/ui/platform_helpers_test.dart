@@ -1,10 +1,10 @@
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/platform/files.dart';
-import 'package:chatito/platform/platform_info.dart';
-import 'package:chatito/platform/push.dart';
-import 'package:chatito/platform/server_config.dart';
-import 'package:chatito/ui/strings.dart';
-import 'package:chatito/ui/widgets/connection_banner.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/platform/files.dart';
+import 'package:piriquito/platform/platform_info.dart';
+import 'package:piriquito/platform/push.dart';
+import 'package:piriquito/platform/server_config.dart';
+import 'package:piriquito/ui/strings.dart';
+import 'package:piriquito/ui/widgets/connection_banner.dart';
 import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_test/flutter_test.dart';
 

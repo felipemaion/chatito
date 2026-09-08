@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 // TestWriteChunkConcurrentSameIndexIsSafe guards against a fixed tmp file

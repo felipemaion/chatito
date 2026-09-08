@@ -69,6 +69,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _attach() async {
     final picked = await ref.read(filePickerProvider).pick();
     if (picked == null) return;
+    await _sendPicked(picked);
+  }
+
+  Future<void> _attachMedia() async {
+    final picked = await ref.read(filePickerProvider).pickMedia();
+    for (final p in picked) {
+      if (!mounted) return;
+      await _sendPicked(p);
+    }
+  }
+
+  Future<void> _sendPicked(PickedFile picked) async {
     try {
       await ref
           .read(chatFacadeProvider)
@@ -251,6 +263,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Composer(
             onSend: _send,
             onAttach: _attach,
+            onAttachMedia: _attachMedia,
             enterSends: platform.isDesktop,
           ),
         ],

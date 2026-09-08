@@ -9,7 +9,7 @@ Future<String> materializeAttachment({
   required Stream<List<int>> bytes,
   required void Function(int receivedBytes) onProgress,
 }) async {
-  final dir = Directory('${Directory.systemTemp.path}/chatito');
+  final dir = Directory('${Directory.systemTemp.path}/piriquito');
   await dir.create(recursive: true);
   final file = File('${dir.path}/$blobId-$name');
   final sink = file.openWrite();

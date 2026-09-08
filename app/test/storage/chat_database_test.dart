@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:chatito/domain/models.dart';
-import 'package:chatito/protocol/protocol.dart';
-import 'package:chatito/storage/storage.dart';
+import 'package:piriquito/domain/models.dart';
+import 'package:piriquito/protocol/protocol.dart';
+import 'package:piriquito/storage/storage.dart';
 import 'package:drift/native.dart';
 import 'package:test/test.dart';
 

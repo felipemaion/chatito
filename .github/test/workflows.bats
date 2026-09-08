@@ -34,8 +34,8 @@ BOT="$GH/dependabot.yml"
   grep -q 'flutter build apk --debug' "$REL"
 }
 
-@test "release: imagem ghcr.io/felipemaion/chatito-relay:<tag> multi-arch" {
-  grep -q 'ghcr.io/felipemaion/chatito-relay' "$REL"
+@test "release: imagem ghcr.io/felipemaion/piriquito-relay:<tag> multi-arch" {
+  grep -q 'ghcr.io/felipemaion/piriquito-relay' "$REL"
   grep -q 'linux/amd64,linux/arm64' "$REL"
   grep -q 'docker/Dockerfile' "$REL"
   grep -q 'packages: write' "$REL"

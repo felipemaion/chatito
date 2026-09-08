@@ -1,8 +1,8 @@
-# Runbook — Chatito no VPS Oracle
+# Runbook — Piriquito no VPS Oracle
 
-Checklist SERVER.md §9 (repo `OracleServer`) preenchido para o Chatito. Convenções: user de deploy
-**`chatito01`**, diretório **`/home/<DOMINIO>/`** (nome = domínio, ex.: `chatito.exemplo.com.br`),
-container **`chatito-relay`** na rede Docker externa **`proxy`**, porta interna **8080**.
+Checklist SERVER.md §9 (repo `OracleServer`) preenchido para o Piriquito. Convenções: user de deploy
+**`piriquito01`**, diretório **`/home/<DOMINIO>/`** (nome = domínio, ex.: `piriquito.exemplo.com.br`),
+container **`piriquito-relay`** na rede Docker externa **`proxy`**, porta interna **8080**.
 Tudo abaixo roda como operador (`ubuntu`) salvo indicação. **Nada disto é executado na Fase 1**
 — é preparação; execução na Fase 4.
 
@@ -14,29 +14,29 @@ Tudo abaixo roda como operador (`ubuntu`) salvo indicação. **Nada disto é exe
 | Item | Onde |
 | --- | --- |
 | Domínio decidido e zona na Cloudflare | Cloudflare → Websites |
-| Chave de deploy | `ssh-keygen -t ed25519 -C 'github-actions-deploy@chatito' -f ~/.ssh/chatito-deploy -N ''` |
-| Host key do servidor (uma vez, de máquina **não banida**) | `ssh-keyscan -t ed25519,ecdsa <IP_DO_SERVIDOR> > chatito-known_hosts` |
+| Chave de deploy | `ssh-keygen -t ed25519 -C 'github-actions-deploy@piriquito' -f ~/.ssh/piriquito-deploy -N ''` |
+| Host key do servidor (uma vez, de máquina **não banida**) | `ssh-keyscan -t ed25519,ecdsa <IP_DO_SERVIDOR> > piriquito-known_hosts` |
 | Projeto Firebase + service account | [FIREBASE.md](FIREBASE.md) |
 
 ## 1. Escolher `<DOMINIO>` e `<APP_USER>`; confirmar que não existem
 
 ```bash
-id chatito01 2>/dev/null && echo "JÁ EXISTE"; ls -d /home/<DOMINIO> 2>/dev/null && echo "JÁ EXISTE"
+id piriquito01 2>/dev/null && echo "JÁ EXISTE"; ls -d /home/<DOMINIO> 2>/dev/null && echo "JÁ EXISTE"
 ```
 
 ## 2. User de sistema + grupo docker (SERVER.md §2)
 
 ```bash
-sudo groupadd --system chatito01
-sudo useradd --system --gid chatito01 --home-dir /home/<DOMINIO> --shell /bin/bash --no-create-home chatito01
-sudo passwd -l chatito01
-sudo usermod -aG docker chatito01
+sudo groupadd --system piriquito01
+sudo useradd --system --gid piriquito01 --home-dir /home/<DOMINIO> --shell /bin/bash --no-create-home piriquito01
+sudo passwd -l piriquito01
+sudo usermod -aG docker piriquito01
 ```
 
 ## 3. Layout `/home/<DOMINIO>/` (§4)
 
 ```bash
-DOMINIO="<DOMINIO>"; APP_USER="chatito01"
+DOMINIO="<DOMINIO>"; APP_USER="piriquito01"
 sudo install -d -o $APP_USER -g $APP_USER -m 0750 /home/$DOMINIO{,/repo,/data}
 sudo install -d -o $APP_USER -g $APP_USER -m 0700 /home/$DOMINIO/secrets
 ```
@@ -50,7 +50,7 @@ sudo chown -R 65532:65532 /home/$DOMINIO/data
 ## 4. Chave de deploy → `authorized_keys` com forced-command
 
 ```bash
-sudo install -d -m700 -o chatito01 -g chatito01 /home/<DOMINIO>/.ssh
+sudo install -d -m700 -o piriquito01 -g piriquito01 /home/<DOMINIO>/.ssh
 sudo nano /home/<DOMINIO>/.ssh/authorized_keys   # colar a linha abaixo (uma linha só)
 ```
 
@@ -59,16 +59,16 @@ command="/home/<DOMINIO>/repo/cron/deploy.sh",no-port-forwarding,no-X11-forwardi
 ```
 
 ```bash
-sudo chmod 600 /home/<DOMINIO>/.ssh/authorized_keys && sudo chown chatito01:chatito01 /home/<DOMINIO>/.ssh/authorized_keys
+sudo chmod 600 /home/<DOMINIO>/.ssh/authorized_keys && sudo chown piriquito01:piriquito01 /home/<DOMINIO>/.ssh/authorized_keys
 ```
 
 ## 5. `git clone` em `repo/` (Deploy Key read-only — repo privado)
 
 ```bash
-sudo -u chatito01 -H ssh-keygen -t ed25519 -C 'deploy-key@chatito-server' -f /home/<DOMINIO>/.ssh/id_ed25519 -N ''
+sudo -u piriquito01 -H ssh-keygen -t ed25519 -C 'deploy-key@piriquito-server' -f /home/<DOMINIO>/.ssh/id_ed25519 -N ''
 sudo cat /home/<DOMINIO>/.ssh/id_ed25519.pub
-# na sua máquina:  gh repo deploy-key add chatito-server.pub --repo felipemaion/chatito --title oracle-chatito01
-sudo -u chatito01 -H git clone git@github.com:felipemaion/chatito.git /home/<DOMINIO>/repo
+# na sua máquina:  gh repo deploy-key add piriquito-server.pub --repo felipemaion/piriquito --title oracle-piriquito01
+sudo -u piriquito01 -H git clone git@github.com:felipemaion/piriquito.git /home/<DOMINIO>/repo
 ```
 
 `cron/deploy.sh` faz `git reset --hard origin/main` — nunca edite arquivos dentro de `repo/` no servidor.
@@ -76,8 +76,8 @@ sudo -u chatito01 -H git clone git@github.com:felipemaion/chatito.git /home/<DOM
 ## 6. `secrets/env` (0600)
 
 ```bash
-sudo -u chatito01 cp /home/<DOMINIO>/repo/docker/env.example /home/<DOMINIO>/secrets/env
-sudo -u chatito01 nano /home/<DOMINIO>/secrets/env
+sudo -u piriquito01 cp /home/<DOMINIO>/repo/docker/env.example /home/<DOMINIO>/secrets/env
+sudo -u piriquito01 nano /home/<DOMINIO>/secrets/env
 sudo chmod 600 /home/<DOMINIO>/secrets/env
 ```
 
@@ -94,14 +94,14 @@ Mudou o env depois? `docker compose ... up -d --force-recreate` (gotcha 14; `res
 
 ```bash
 cd /home/<DOMINIO>/repo
-export CHATITO_DOMAIN=<DOMINIO>
-sudo -u chatito01 -E docker compose -f docker/docker-compose.yml up -d --build
-docker inspect -f '{{.State.Health.Status}}' chatito-relay    # healthy
+export PIRIQUITO_DOMAIN=<DOMINIO>
+sudo -u piriquito01 -E docker compose -f docker/docker-compose.yml up -d --build
+docker inspect -f '{{.State.Health.Status}}' piriquito-relay    # healthy
 ```
 
-O compose lê `CHATITO_DOMAIN` para montar `/home/<DOMINIO>/data` e `secrets/env`. O `deploy.sh`
+O compose lê `PIRIQUITO_DOMAIN` para montar `/home/<DOMINIO>/data` e `secrets/env`. O `deploy.sh`
 deriva a variável do diretório pai automaticamente. Build ARM64 nativo (~1 min, imagem ~3 MB).
-Alternativa sem build no servidor: `docker pull ghcr.io/felipemaion/chatito-relay:<tag>` (gerada
+Alternativa sem build no servidor: `docker pull ghcr.io/felipemaion/piriquito-relay:<tag>` (gerada
 pelo `release.yml`) e trocar `build:` por `image:` no compose — não é o padrão atual.
 
 ## 8. Bootstrap do admin (primeiro usuário)
@@ -140,7 +140,7 @@ limites para os chunks de upload e mantém a conexão do `/v1/ws` viva.
 	request_body {
 		max_size 9MB
 	}
-	reverse_proxy chatito-relay:8080 {
+	reverse_proxy piriquito-relay:8080 {
 		flush_interval -1
 		transport http {
 			read_timeout 0
@@ -169,18 +169,18 @@ curl -sSI https://<DOMINIO>/v1/ws -H 'Connection: Upgrade' -H 'Upgrade: websocke
 ## 13. Smoke interno
 
 ```bash
-cd /home/caddy.internal && docker compose exec caddy wget -qO- http://chatito-relay:8080/healthz
+cd /home/caddy.internal && docker compose exec caddy wget -qO- http://piriquito-relay:8080/healthz
 ```
 
 ## 14. Secrets no GitHub (environment `production`) + workflow de deploy
 
 ```bash
-gh secret set DEPLOY_HOST        --env production --repo felipemaion/chatito --body <IP_DO_SERVIDOR>
-gh secret set DEPLOY_USER        --env production --repo felipemaion/chatito --body chatito01
-gh secret set DEPLOY_SSH_KEY     --env production --repo felipemaion/chatito < ~/.ssh/chatito-deploy
-gh secret set DEPLOY_KNOWN_HOSTS --env production --repo felipemaion/chatito < chatito-known_hosts
-gh secret set PRODUCTION_SITE_URL --env production --repo felipemaion/chatito --body https://<DOMINIO>
-gh workflow run deploy.yml --repo felipemaion/chatito     # dispatch manual
+gh secret set DEPLOY_HOST        --env production --repo felipemaion/piriquito --body <IP_DO_SERVIDOR>
+gh secret set DEPLOY_USER        --env production --repo felipemaion/piriquito --body piriquito01
+gh secret set DEPLOY_SSH_KEY     --env production --repo felipemaion/piriquito < ~/.ssh/piriquito-deploy
+gh secret set DEPLOY_KNOWN_HOSTS --env production --repo felipemaion/piriquito < piriquito-known_hosts
+gh secret set PRODUCTION_SITE_URL --env production --repo felipemaion/piriquito --body https://<DOMINIO>
+gh workflow run deploy.yml --repo felipemaion/piriquito     # dispatch manual
 ```
 
 Secrets do `release.yml` (nível de repositório, não environment): `ANDROID_KEYSTORE_B64`,
@@ -193,17 +193,17 @@ Nenhum. Expiração de envelopes/blobs (TTL 30 dias) é job interno do relay. Ba
 ## 16. Documentar
 
 README do projeto (seção Deploy) + inventário SERVER.md §11 do `OracleServer`:
-`Chatito | <DOMINIO> | /home/<DOMINIO>/, container chatito-relay (Go, interno :8080), user chatito01`.
+`Piriquito | <DOMINIO> | /home/<DOMINIO>/, container piriquito-relay (Go, interno :8080), user piriquito01`.
 
 ---
 
 ## Operação do dia a dia
 
-| Tarefa | Comando (em `/home/<DOMINIO>/repo`, `CHATITO_DOMAIN` exportado) |
+| Tarefa | Comando (em `/home/<DOMINIO>/repo`, `PIRIQUITO_DOMAIN` exportado) |
 | --- | --- |
 | Logs | `docker compose -f docker/docker-compose.yml logs -f --tail 100 relay` |
-| Health | `docker inspect -f '{{.State.Health.Status}}' chatito-relay` |
-| Deploy manual (mesmo caminho do CI) | `sudo -u chatito01 -H /home/<DOMINIO>/repo/cron/deploy.sh` |
+| Health | `docker inspect -f '{{.State.Health.Status}}' piriquito-relay` |
+| Deploy manual (mesmo caminho do CI) | `sudo -u piriquito01 -H /home/<DOMINIO>/repo/cron/deploy.sh` |
 | Reiniciar | `docker compose -f docker/docker-compose.yml restart relay` |
 | Novo convite | `docker compose -f docker/docker-compose.yml exec relay /relay admin invite --user "Nome"` |
 | Uso de disco (blobs pendentes) | `sudo du -sh /home/<DOMINIO>/data/blobs` |
@@ -211,8 +211,8 @@ README do projeto (seção Deploy) + inventário SERVER.md §11 do `OracleServer
 ### Rollback
 
 ```bash
-cd /home/<DOMINIO>/repo && sudo -u chatito01 -H git reset --hard <sha-bom> \
-  && sudo -u chatito01 -E docker compose -f docker/docker-compose.yml up -d --build
+cd /home/<DOMINIO>/repo && sudo -u piriquito01 -H git reset --hard <sha-bom> \
+  && sudo -u piriquito01 -E docker compose -f docker/docker-compose.yml up -d --build
 ```
 O próximo push em `main` volta para `origin/main`; para rollback duradouro, reverta o commit no GitHub.
 
@@ -221,6 +221,6 @@ O próximo push em `main` volta para `origin/main`; para rollback duradouro, rev
 | Sintoma | Causa provável | Ação |
 | --- | --- | --- |
 | `deploy` no Actions falha com "Permission denied (publickey)" | fail2ban baniu o runner ou chave errada | `sudo fail2ban-client status sshd`; nunca `ssh-keyscan` no workflow |
-| Container `unhealthy` logo após deploy | binário sem `-healthcheck` (versão antiga) ou `data/` sem permissão para uid 65532 | `docker logs chatito-relay`; `chown -R 65532:65532 data/` |
+| Container `unhealthy` logo após deploy | binário sem `-healthcheck` (versão antiga) ou `data/` sem permissão para uid 65532 | `docker logs piriquito-relay`; `chown -R 65532:65532 data/` |
 | WebSocket cai a cada ~100 s | timeout do Cloudflare/Caddy | relay pinga a cada 30 s (PROTOCOL §4); conferir `read_timeout 0` no Caddyfile |
 | `413` no upload de chunk | `max_size` no Caddy < 8 MiB | bloco do §11 |

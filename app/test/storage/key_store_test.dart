@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:chatito/crypto/crypto.dart';
-import 'package:chatito/storage/storage.dart';
+import 'package:piriquito/crypto/crypto.dart';
+import 'package:piriquito/storage/storage.dart';
 import 'package:test/test.dart';
 
 void main() {

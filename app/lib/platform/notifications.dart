@@ -33,8 +33,8 @@ class SystemLocalNotifications implements LocalNotifications {
           macOS: DarwinInitializationSettings(),
           linux: LinuxInitializationSettings(defaultActionName: 'Abrir'),
           windows: WindowsInitializationSettings(
-            appName: 'Chatito',
-            appUserModelId: 'br.com.maion.chatito',
+            appName: 'Piriquito',
+            appUserModelId: 'br.com.maion.piriquito',
             guid: '5b0f4c2e-6d1a-4f8b-9c3e-2a7d8e9f0b1c',
           ),
         ),

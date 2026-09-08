@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 const (

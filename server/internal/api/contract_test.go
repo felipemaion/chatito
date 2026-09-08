@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/felipemaion/chatito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/api"
 )
 
 const fixturesDir = "../../../docs/protocol/fixtures"

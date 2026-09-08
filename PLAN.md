@@ -1,4 +1,4 @@
-# Chatito — Plano de Produto, Arquitetura e Orquestração
+# Piriquito — Plano de Produto, Arquitetura e Orquestração
 
 > Mensageiro privado da família (Felipe, filhos e a mãe deles). Clientes macOS, Windows e
 > Android. Servidor de relay **cego** (E2E) que guarda envelopes só até serem entregues.
@@ -16,7 +16,7 @@
 | Push Android | **FCM data-only ("acorda e busca")** | Sem conteúdo no Google; bateria normal |
 | Domínio | Decidir depois — dev local com Docker | DNS/TLS entram na Fase 4 (deploy) |
 | Cadastro | **Fechado**: admin (Felipe) gera convites; sem signup público | Grupo familiar, ~4 pessoas, N dispositivos por pessoa |
-| Repo | **Monorepo privado** `felipemaion/chatito` | Protocolo compartilhado, CI única |
+| Repo | **Monorepo privado** `felipemaion/piriquito` | Protocolo compartilhado, CI única |
 | Método | **TDD obrigatório** em todo código de produção | Pedido explícito; gates de cobertura no CI |
 
 ### Premissas (corrija se alguma estiver errada)
@@ -38,11 +38,11 @@
 
 ```
 ┌──────────────┐  WSS/HTTPS   ┌─────────────────────┐   FCM v1    ┌─────────┐
-│ App Flutter  │◄────────────►│  chatito-relay (Go) │────────────►│ Google  │──► Android
+│ App Flutter  │◄────────────►│  piriquito-relay (Go) │────────────►│ Google  │──► Android
 │ macOS/Win/And│  envelopes   │  SQLite + blobs FS  │  "ping"     └─────────┘   (acorda o app)
 │ chaves locais│  cifrados    │  fila até o ack     │
 └──────────────┘              └─────────────────────┘
-        Cloudflare (Proxied) → Caddy → rede docker "proxy" → chatito-relay:8080
+        Cloudflare (Proxied) → Caddy → rede docker "proxy" → piriquito-relay:8080
 ```
 
 ### 2.1 Servidor — `server/` (Go 1.23+)
@@ -60,7 +60,7 @@
   HTTP v1 (service account em `secrets/env`). Nunca envia conteúdo.
 - **Diretório de chaves**: `GET /v1/directory` devolve users + devices + chaves públicas (só para
   autenticados). Verificação de chave é feita fora de banda (safety number / QR) no app.
-- **Admin CLI**: `chatito-relay admin invite --user "Felipe"` gera código; rodado via
+- **Admin CLI**: `piriquito-relay admin invite --user "Felipe"` gera código; rodado via
   `docker compose exec`.
 - **Persistência**: SQLite (`modernc.org/sqlite`, sem CGO), WAL, em `/app/data`; blobs em
   `/app/data/blobs`. Job de expiração a cada hora.
@@ -111,7 +111,7 @@ registra no servidor → recebe diretório → mostra safety numbers para confer
 ## 4. Estrutura do repositório
 
 ```
-chatito/
+piriquito/
 ├── PLAN.md  README.md  CLAUDE.md          ← CLAUDE.md = regras acima, para os agentes
 ├── docs/
 │   ├── PROTOCOL.md
@@ -135,7 +135,7 @@ chatito/
 | **1 — Núcleo** (paralelo, 4 agentes) | A: servidor completo com testes. B: app crypto+protocol+transport+storage. C: app UI com backend fake em memória. D: Docker ARM64, workflows, deploy.sh, docs de operação | 4 agentes em panes | Cada branch: testes ≥ 80%, review aprovado, merge em `main` |
 | **2 — Integração** (2 agentes) | App real ↔ servidor em Docker local; teste E2E (2 devices trocando texto e arquivo); FCM (precisa do projeto Firebase) | A+B juntos; C ajusta UI | E2E verde; mensagem Mac→Android com push |
 | **3 — Release** | Builds: APK assinado (keystore próprio), `.dmg`, `.zip` Windows via Actions; página de download privada (Releases) | D | Instalação em Mac e Android reais |
-| **4 — Deploy Oracle** | User `chatito01`, `/home/<DOMINIO>/`, Caddy, Cloudflare, secrets, CD por forced-command | Agente de infra + pane SSH da sessão `Oracle` | Smoke externo; primeira conversa da família |
+| **4 — Deploy Oracle** | User `piriquito01`, `/home/<DOMINIO>/`, Caddy, Cloudflare, secrets, CD por forced-command | Agente de infra + pane SSH da sessão `Oracle` | Smoke externo; primeira conversa da família |
 
 Dependências externas que só você pode fazer (aviso antecipado):
 - **Firebase**: criar projeto e baixar `google-services.json` + service account (Fase 2). Posso guiar pelo Chrome.
@@ -148,17 +148,17 @@ Dependências externas que só você pode fazer (aviso antecipado):
 
 ### 6.1 Layout
 
-Nova janela `dev` na sessão `Chatito`, 5 panes (cada `claude` interativo, sem `-p`):
+Nova janela `dev` na sessão `Piriquito`, 5 panes (cada `claude` interativo, sem `-p`):
 
 | Pane | Agente | Worktree / branch | Escopo |
 | --- | --- | --- | --- |
-| `dev.0` | **A · server** | `~/Projects/chatito-wt/server` · `feat/server` | `server/**` |
-| `dev.2` | **B · app-core** | `~/Projects/chatito-wt/app-core` · `feat/app-core` | `app/lib/{crypto,protocol,transport,storage,domain}` |
-| `dev.1` | **C · app-ui** | `~/Projects/chatito-wt/app-ui` · `feat/app-ui` | `app/lib/ui`, `app/lib/platform`; usa interfaces do B com fakes |
-| `dev.3` | **D · infra** | `~/Projects/chatito-wt/infra` · `feat/infra` | `docker/`, `.github/`, `cron/`, docs |
-| `dev.4` | shell | `~/Projects/Chatito` (main) | testes/merges/logs do orquestrador |
+| `dev.0` | **A · server** | `~/Projects/piriquito-wt/server` · `feat/server` | `server/**` |
+| `dev.2` | **B · app-core** | `~/Projects/piriquito-wt/app-core` · `feat/app-core` | `app/lib/{crypto,protocol,transport,storage,domain}` |
+| `dev.1` | **C · app-ui** | `~/Projects/piriquito-wt/app-ui` · `feat/app-ui` | `app/lib/ui`, `app/lib/platform`; usa interfaces do B com fakes |
+| `dev.3` | **D · infra** | `~/Projects/piriquito-wt/infra` · `feat/infra` | `docker/`, `.github/`, `cron/`, docs |
+| `dev.4` | shell | `~/Projects/Piriquito` (main) | testes/merges/logs do orquestrador |
 
-O **orquestrador** é esta sessão (`Chatito:2.1`): escreve o contrato, distribui tarefas, faz
+O **orquestrador** é esta sessão (`Piriquito:2.1`): escreve o contrato, distribui tarefas, faz
 review e merge, resolve conflitos e fala com você.
 
 ### 6.2 Isolamento e integração
@@ -168,7 +168,7 @@ review e merge, resolve conflitos e fala com você.
 - **Merge**: agente abre PR (`gh pr create`); orquestrador roda review (`ecc:go-review` /
   `ecc:flutter-review` / `ecc:security-reviewer`) e faz `gh pr merge --squash`. Agentes fazem
   `git rebase main` ao começar cada tarefa.
-- **Comunicação** (convenções do SERVER.md §12): `tmux send-keys -t Chatito:dev.N` com **texto e
+- **Comunicação** (convenções do SERVER.md §12): `tmux send-keys -t Piriquito:dev.N` com **texto e
   `Enter` em chamadas separadas**; leitura por `capture-pane`; cada agente mantém
   `docs/status/<agente>.md` (feito / em andamento / bloqueios) que o orquestrador lê em vez de
   ler o pane inteiro (economia de tokens).
@@ -214,7 +214,7 @@ Resumo vivo em `docs/STATUS.md`. O que a fase de campo ensinou (e virou regra em
 | Lição | Consequência no código |
 | --- | --- |
 | A URL do servidor não era persistida; após reiniciar o app voltava ao endereço do emulador (`10.0.2.2`) | URL gravada no `KeyStore`, carregada antes de construir a fachada; campo "Servidor" em Ajustes; faixa "Servidor não configurado" |
-| `dart:developer log` some no build release (AOT) | Logs de transição via `print('[chatito.ws] …')`/`[chatito.boot]` — visíveis no `logcat` |
+| `dart:developer log` some no build release (AOT) | Logs de transição via `print('[piriquito.ws] …')`/`[piriquito.boot]` — visíveis no `logcat` |
 | A UI pedia conexão antes de a sessão carregar | `RealChatFacade` aguarda `_ready`; `connect()` single-flight; conexão automática após restaurar sessão |
 | Timeout do handshake deixava sockets zumbis que derrubavam a conexão boa (4409) | Gerações de conexão; 4409 não é terminal; watchdog de socket mudo |
 | Keychain do macOS exige assinatura estável (cada build ad-hoc pedia senha e perdia a identidade) | `FileKeyStore` (arquivo 0600 no container do app) em macOS/Windows/Linux; Android segue no Keystore |

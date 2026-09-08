@@ -1,7 +1,7 @@
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/platform/qr_scanner.dart';
-import 'package:chatito/ui/screens/contact_detail_screen.dart';
-import 'package:chatito/ui/strings.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/platform/qr_scanner.dart';
+import 'package:piriquito/ui/screens/contact_detail_screen.dart';
+import 'package:piriquito/ui/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qr_flutter/qr_flutter.dart';

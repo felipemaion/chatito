@@ -4,11 +4,11 @@
 // lançava `not_registered` como exceção não tratada — o app nunca conectava.
 import 'dart:convert';
 
-import 'package:chatito/crypto/crypto.dart';
-import 'package:chatito/domain/domain.dart';
-import 'package:chatito/domain/real_chat_facade.dart';
-import 'package:chatito/protocol/protocol.dart';
-import 'package:chatito/storage/storage.dart';
+import 'package:piriquito/crypto/crypto.dart';
+import 'package:piriquito/domain/domain.dart';
+import 'package:piriquito/domain/real_chat_facade.dart';
+import 'package:piriquito/protocol/protocol.dart';
+import 'package:piriquito/storage/storage.dart';
 import 'package:drift/native.dart';
 import 'package:sodium/sodium.dart';
 import 'package:test/test.dart';

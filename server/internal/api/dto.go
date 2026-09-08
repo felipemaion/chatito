@@ -3,7 +3,7 @@ package api
 import (
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 // timeStr formats a time as RFC 3339 UTC with second precision.

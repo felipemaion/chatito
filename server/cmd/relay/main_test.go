@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 func envOf(m map[string]string) func(string) string {

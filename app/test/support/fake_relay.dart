@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:chatito/protocol/protocol.dart';
+import 'package:piriquito/protocol/protocol.dart';
 
 /// Relay cego em memória que fala o PROTOCOL.md v1 (subconjunto suficiente
 /// para transport e domínio). Não valida nada de crypto: só roteia.

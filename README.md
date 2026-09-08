@@ -1,4 +1,4 @@
-# Chatito
+# Piriquito
 
 Mensageiro privado da família — macOS, Windows e Android. Servidor de relay **cego** (E2E com
 libsodium) em Go que guarda mensagens só até serem entregues; histórico vive nos dispositivos.
@@ -81,19 +81,19 @@ passam pelo orquestrador (nunca edite uma fixture sozinho).
 
 ```bash
 # imagem do relay, multi-arch (é o que a CI faz; sem push)
-docker buildx build --platform linux/arm64,linux/amd64 -f docker/Dockerfile -t chatito-relay:dev .
+docker buildx build --platform linux/arm64,linux/amd64 -f docker/Dockerfile -t piriquito-relay:dev .
 
 cd app
 flutter build apk --release        # build/app/outputs/flutter-apk/app-release.apk
-flutter build macos --release      # build/macos/Build/Products/Release/chatito.app
+flutter build macos --release      # build/macos/Build/Products/Release/Piriquito.app
 flutter build windows --release    # build/windows/x64/runner/Release/
 ```
 
 ## Release (binários para a família)
 
 `git tag v0.1.0 && git push origin v0.1.0` → o workflow `release.yml` gera e anexa a um
-**GitHub Release** (privado): `chatito-<tag>-android.apk`, `chatito-<tag>-macos.dmg`,
-`chatito-<tag>-windows.zip`, `SHA256SUMS`, e publica `ghcr.io/felipemaion/chatito-relay:<tag>`
+**GitHub Release** (privado): `piriquito-<tag>-android.apk`, `piriquito-<tag>-macos.dmg`,
+`piriquito-<tag>-windows.zip`, `SHA256SUMS`, e publica `ghcr.io/felipemaion/piriquito-relay:<tag>`
 (amd64 + arm64).
 
 APK **assinado** exige os secrets de repositório `ANDROID_KEYSTORE_B64`, `ANDROID_KEY_ALIAS`,
@@ -101,11 +101,11 @@ APK **assinado** exige os secrets de repositório `ANDROID_KEYSTORE_B64`, `ANDRO
 por cima de um assinado). Gerar a keystore uma vez e guardar no gerenciador de senhas:
 
 ```bash
-keytool -genkey -v -keystore chatito-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias chatito
-gh secret set ANDROID_KEYSTORE_B64 --repo felipemaion/chatito --body "$(base64 -i chatito-upload.jks | tr -d '\n')"
-gh secret set ANDROID_KEY_ALIAS --repo felipemaion/chatito --body chatito
-gh secret set ANDROID_KEY_PASSWORD --repo felipemaion/chatito     # pede o valor
-gh secret set ANDROID_STORE_PASSWORD --repo felipemaion/chatito
+keytool -genkey -v -keystore piriquito-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias piriquito
+gh secret set ANDROID_KEYSTORE_B64 --repo felipemaion/piriquito --body "$(base64 -i piriquito-upload.jks | tr -d '\n')"
+gh secret set ANDROID_KEY_ALIAS --repo felipemaion/piriquito --body piriquito
+gh secret set ANDROID_KEY_PASSWORD --repo felipemaion/piriquito     # pede o valor
+gh secret set ANDROID_STORE_PASSWORD --repo felipemaion/piriquito
 ```
 
 ## Instalar
@@ -113,8 +113,8 @@ gh secret set ANDROID_STORE_PASSWORD --repo felipemaion/chatito
 | Plataforma | Como | Aviso esperado |
 | --- | --- | --- |
 | **Android** | Baixar o `.apk` no celular → abrir → permitir "instalar apps desconhecidos" para o navegador/Arquivos | Play Protect pode pedir confirmação ("instalar mesmo assim") |
-| **macOS** | Abrir o `.dmg` → arrastar `chatito.app` para *Applications* → **botão direito → Abrir** na 1ª vez (não notarizado) | "não pode ser verificado" — Abrir mesmo assim; ou `xattr -dr com.apple.quarantine /Applications/chatito.app` |
-| **Windows** | Extrair o `.zip` numa pasta (ex.: `C:\Chatito`) → executar `chatito.exe`; atalho manual | SmartScreen: *Mais informações → Executar assim mesmo* (sem assinatura) |
+| **macOS** | Abrir o `.dmg` → arrastar `Piriquito.app` para *Applications* → **botão direito → Abrir** na 1ª vez (não notarizado) | "não pode ser verificado" — Abrir mesmo assim; ou `xattr -dr com.apple.quarantine /Applications/Piriquito.app` |
+| **Windows** | Extrair o `.zip` numa pasta (ex.: `C:\Piriquito`) → executar `piriquito.exe`; atalho manual | SmartScreen: *Mais informações → Executar assim mesmo* (sem assinatura) |
 
 Atualizar = instalar a versão nova por cima (Android exige a **mesma** assinatura; macOS/Windows
 substituir a pasta/app). Os dados ficam no perfil do usuário e sobrevivem.
@@ -132,7 +132,7 @@ trocada em **Ajustes → Servidor**. Se aparecer a faixa "Servidor não configur
 
 ```bash
 adb devices                                      # depuração USB ligada no aparelho
-adb -s <serial> logcat -d | grep 'chatito\.'     # [chatito.boot] e [chatito.ws] (também no release)
+adb -s <serial> logcat -d | grep 'piriquito\.'     # [piriquito.boot] e [piriquito.ws] (também no release)
 docker compose -f docker/docker-compose.dev.yml logs --since 5m relay | grep 'ws '
 ```
 

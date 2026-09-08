@@ -9,7 +9,7 @@ Future<void> setupWindow(PlatformInfo platform) async {
   try {
     await windowManager.ensureInitialized();
     const options = WindowOptions(
-      title: 'Chatito',
+      title: 'Piriquito',
       minimumSize: Size(480, 600),
       size: Size(1100, 760),
       center: true,

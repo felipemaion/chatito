@@ -1,11 +1,11 @@
 /// Textos da UI em pt-BR (único idioma do v1).
 abstract final class S {
-  static const appName = 'Chatito';
+  static const appName = 'Piriquito';
   static const conversations = 'Conversas';
   static const noConversation = 'Escolha uma conversa';
   static const noMessages = 'Nenhuma mensagem ainda';
   static const settings = 'Ajustes';
-  static const onboardingTitle = 'Bem-vindo ao Chatito';
+  static const onboardingTitle = 'Bem-vindo ao Piriquito';
   static const onboardingSubtitle =
       'Digite o código de convite recebido do administrador e dê um nome a este aparelho.';
   static const inviteCode = 'Código de convite';
@@ -24,6 +24,7 @@ abstract final class S {
   static const messageHint = 'Mensagem';
   static const send = 'Enviar';
   static const attach = 'Anexar arquivo';
+  static const attachMedia = 'Anexar foto ou vídeo';
   static const download = 'Baixar';
   static const open = 'Abrir';
   static const uploading = 'Enviando';

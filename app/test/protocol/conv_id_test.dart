@@ -1,4 +1,4 @@
-import 'package:chatito/protocol/protocol.dart';
+import 'package:piriquito/protocol/protocol.dart';
 import 'package:test/test.dart';
 
 void main() {

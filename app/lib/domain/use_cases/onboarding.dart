@@ -104,7 +104,7 @@ class Onboarding {
     final keys = await ks.readIdentity();
     // ignore: avoid_print
     print(
-      '[chatito.boot] restore: session=${stored != null} '
+      '[piriquito.boot] restore: session=${stored != null} '
       'token=${token != null} keys=${keys != null}',
     );
     if (stored == null || token == null || keys == null) {

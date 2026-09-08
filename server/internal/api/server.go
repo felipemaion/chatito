@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 // Notifier is told about freshly queued envelopes so it can push them over

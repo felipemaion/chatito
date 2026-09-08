@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/api"
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 const defaultInterval = time.Hour

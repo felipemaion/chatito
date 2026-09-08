@@ -6,15 +6,15 @@ acorda o app em segundo plano. Precisa ser feito **por você** (conta Google); l
 
 ## 1. Criar o projeto
 
-1. <https://console.firebase.google.com> → **Adicionar projeto** → nome `chatito` → desative o
+1. <https://console.firebase.google.com> → **Adicionar projeto** → nome `piriquito` → desative o
    Google Analytics (não é usado) → Criar.
-2. Menu ⚙ → **Configurações do projeto** → guarde o **ID do projeto** (ex.: `chatito-a1b2c`).
+2. Menu ⚙ → **Configurações do projeto** → guarde o **ID do projeto** (ex.: `piriquito-a1b2c`).
 
 ## 2. Registrar o app Android e baixar `google-services.json`
 
-1. Na visão geral → ícone **Android** → *Nome do pacote Android*: **`br.com.maion.chatito`**
+1. Na visão geral → ícone **Android** → *Nome do pacote Android*: **`br.com.maion.piriquito`**
    (é o `applicationId` em `app/android/app/build.gradle.kts`; tem que bater exatamente).
-2. Apelido: `Chatito Android`. Certificado SHA-1: opcional (só para Auth/Dynamic Links — não usamos).
+2. Apelido: `Piriquito Android`. Certificado SHA-1: opcional (só para Auth/Dynamic Links — não usamos).
 3. **Baixar `google-services.json`** → colocar em **`app/android/app/google-services.json`**.
    O arquivo está no `.gitignore`; não commitar. Cada dev que builda Android precisa de uma cópia.
 4. Pule os passos de Gradle do assistente: o plugin `com.google.gms.google-services` é aplicado pelo
@@ -27,13 +27,13 @@ app-ui aplicar o plugin (registrado em `docs/status/infra.md` → Bloqueios).
 ## 3. Service account para o servidor (FCM HTTP v1)
 
 1. ⚙ → **Configurações do projeto** → guia **Contas de serviço** → *Firebase Admin SDK* →
-   **Gerar nova chave privada** → baixa `chatito-xxxx-firebase-adminsdk-....json`.
+   **Gerar nova chave privada** → baixa `piriquito-xxxx-firebase-adminsdk-....json`.
 2. Confirme que a API **Firebase Cloud Messaging API (V1)** está ativada
    (guia *Cloud Messaging*; se aparecer "desativada", clique em *Gerenciar API no Google Cloud* → Ativar).
 3. Converta e coloque no servidor (`/home/<DOMINIO>/secrets/env`, via `nano` — gotcha 12):
 
 ```bash
-base64 -w0 chatito-xxxx-firebase-adminsdk-....json   # macOS: base64 -i arquivo.json | tr -d '\n'
+base64 -w0 piriquito-xxxx-firebase-adminsdk-....json   # macOS: base64 -i arquivo.json | tr -d '\n'
 # → FCM_SERVICE_ACCOUNT_B64=<saída>
 ```
 
@@ -48,7 +48,7 @@ vazio (push desligado, log avisa uma vez).
 
 | Onde | Como |
 | --- | --- |
-| Servidor | log do relay ao subir: `push: fcm enabled (project chatito-xxxx)` |
+| Servidor | log do relay ao subir: `push: fcm enabled (project piriquito-xxxx)` |
 | App | Ajustes → Diagnóstico → "token FCM registrado"; `PUT /v1/devices/me/push` retorna 204 |
 | Ponta a ponta | app Android em segundo plano; envie mensagem do Mac; o Android deve buscar a fila em segundos |
 

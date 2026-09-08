@@ -1,30 +1,30 @@
 #!/usr/bin/env bash
 # Deploy no VPS Oracle — alvo do forced-command da chave de deploy (SERVER.md §2/§8 no repo
 # OracleServer). O GitHub Actions só abre 1 conexão SSH; este script faz todo o trabalho no
-# servidor como <APP_USER> (chatito01): git reset em origin/main + compose build + gate de health.
+# servidor como <APP_USER> (piriquito01): git reset em origin/main + compose build + gate de health.
 #
 # Instalação (uma vez, como operador) — linha do authorized_keys do user de deploy:
 #   command="/home/<DOMINIO>/repo/cron/deploy.sh",no-port-forwarding,no-X11-forwarding,\
 #   no-agent-forwarding,no-pty ssh-ed25519 AAAA... github-actions-deploy
 #
 # Variáveis (todas opcionais; sobrescritas nos testes bats em cron/test):
-#   CHATITO_REPO_DIR          raiz do checkout (padrão: pai deste script)
-#   CHATITO_DOMAIN            usado pelo compose (padrão: nome do diretório pai do repo)
-#   CHATITO_LOCK_FILE         arquivo de lock (padrão: /home/<DOMINIO>/deploy.lock)
-#   CHATITO_HEALTH_TIMEOUT_S  espera máxima pelo healthcheck (padrão: 180)
-#   CHATITO_SLEEP_S           intervalo entre checagens (padrão: 5)
+#   PIRIQUITO_REPO_DIR          raiz do checkout (padrão: pai deste script)
+#   PIRIQUITO_DOMAIN            usado pelo compose (padrão: nome do diretório pai do repo)
+#   PIRIQUITO_LOCK_FILE         arquivo de lock (padrão: /home/<DOMINIO>/deploy.lock)
+#   PIRIQUITO_HEALTH_TIMEOUT_S  espera máxima pelo healthcheck (padrão: 180)
+#   PIRIQUITO_SLEEP_S           intervalo entre checagens (padrão: 5)
 set -euo pipefail
 
-REPO_DIR="${CHATITO_REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+REPO_DIR="${PIRIQUITO_REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 COMPOSE_FILE="docker/docker-compose.yml"
 BRANCH="main"
-CONTAINER="chatito-relay"
-HEALTH_TIMEOUT_S="${CHATITO_HEALTH_TIMEOUT_S:-180}"
-SLEEP_S="${CHATITO_SLEEP_S:-5}"
-# CHATITO_DOMAIN = nome do diretório /home/<DOMINIO>/ (pai de repo/), convenção SERVER.md §4.
-export CHATITO_DOMAIN="${CHATITO_DOMAIN:-$(basename "$(dirname "$REPO_DIR")")}"
+CONTAINER="piriquito-relay"
+HEALTH_TIMEOUT_S="${PIRIQUITO_HEALTH_TIMEOUT_S:-180}"
+SLEEP_S="${PIRIQUITO_SLEEP_S:-5}"
+# PIRIQUITO_DOMAIN = nome do diretório /home/<DOMINIO>/ (pai de repo/), convenção SERVER.md §4.
+export PIRIQUITO_DOMAIN="${PIRIQUITO_DOMAIN:-$(basename "$(dirname "$REPO_DIR")")}"
 # Lock fora de data/ (pertence ao uid do container) e fora de /tmp (limpo no boot).
-LOCK_FILE="${CHATITO_LOCK_FILE:-$(dirname "$REPO_DIR")/deploy.lock}"
+LOCK_FILE="${PIRIQUITO_LOCK_FILE:-$(dirname "$REPO_DIR")/deploy.lock}"
 
 log() { printf '[deploy %s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
 fail() {
@@ -47,7 +47,7 @@ fi
 
 cd "$REPO_DIR"
 
-log "atualizando repo para origin/$BRANCH (domínio: $CHATITO_DOMAIN)"
+log "atualizando repo para origin/$BRANCH (domínio: $PIRIQUITO_DOMAIN)"
 git fetch --quiet origin "$BRANCH"
 git reset --hard --quiet "origin/$BRANCH"
 log "HEAD: $(git rev-parse --short HEAD) — $(git log -1 --format=%s)"

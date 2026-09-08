@@ -1,6 +1,6 @@
-import 'package:chatito/platform/platform_info.dart';
-import 'package:chatito/platform/server_config.dart';
-import 'package:chatito/storage/storage.dart';
+import 'package:piriquito/platform/platform_info.dart';
+import 'package:piriquito/platform/server_config.dart';
+import 'package:piriquito/storage/storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

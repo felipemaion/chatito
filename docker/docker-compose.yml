@@ -1,15 +1,15 @@
 # Produção (Oracle). Sem "ports:" — o Caddy alcança pela rede externa "proxy".
-name: chatito
+name: piriquito
 services:
   relay:
     build: { context: .., dockerfile: docker/Dockerfile }
-    image: chatito-relay:local
-    container_name: chatito-relay
+    image: piriquito-relay:local
+    container_name: piriquito-relay
     restart: unless-stopped
     volumes:
-      - /home/${CHATITO_DOMAIN:?}/data:/app/data
+      - /home/${PIRIQUITO_DOMAIN:?}/data:/app/data
     env_file:
-      - /home/${CHATITO_DOMAIN:?}/secrets/env
+      - /home/${PIRIQUITO_DOMAIN:?}/secrets/env
     networks: [proxy]
     healthcheck:
       test: ["CMD", "/relay", "-healthcheck"]

@@ -1,7 +1,7 @@
-import 'package:chatito/domain/domain.dart';
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/platform/server_config.dart';
-import 'package:chatito/ui/strings.dart';
+import 'package:piriquito/domain/domain.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/platform/server_config.dart';
+import 'package:piriquito/ui/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

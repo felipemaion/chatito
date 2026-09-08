@@ -22,6 +22,9 @@ class PickedFile {
 abstract class FilePickerService {
   /// null se o usuário cancelar.
   Future<PickedFile?> pick();
+
+  /// Fotos e vídeos da galeria (vários de uma vez); vazio se cancelar.
+  Future<List<PickedFile>> pickMedia();
 }
 
 /// Abre um arquivo local com o app padrão do sistema.
@@ -50,6 +53,25 @@ class SystemFilePicker implements FilePickerService {
       size: await f.length(),
       mime: mimeFromName(f.name),
     );
+  }
+
+  @override
+  Future<List<PickedFile>> pickMedia() async {
+    final files = await FilePicker.pickFiles(type: FileType.media);
+    final out = <PickedFile>[];
+    for (final f in files) {
+      final path = f.path;
+      if (path == null) continue;
+      out.add(
+        PickedFile(
+          path: path,
+          name: f.name,
+          size: await f.length(),
+          mime: mimeFromName(f.name),
+        ),
+      );
+    }
+    return out;
   }
 }
 

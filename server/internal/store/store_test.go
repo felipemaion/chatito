@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 func openTest(t *testing.T) *store.Store {

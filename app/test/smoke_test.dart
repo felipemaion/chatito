@@ -1,9 +1,9 @@
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/main.dart';
-import 'package:chatito/platform/connectivity.dart';
-import 'package:chatito/platform/notifications.dart';
-import 'package:chatito/platform/push.dart';
-import 'package:chatito/ui/providers.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/main.dart';
+import 'package:piriquito/platform/connectivity.dart';
+import 'package:piriquito/platform/notifications.dart';
+import 'package:piriquito/platform/push.dart';
+import 'package:piriquito/ui/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

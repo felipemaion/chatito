@@ -378,7 +378,7 @@ class FakeChatFacade implements ChatFacade {
       (
         ConvId.family,
         true,
-        'Bem-vindos ao Chatito! 🎉',
+        'Bem-vindos ao Piriquito! 🎉',
         t0,
         MessageStatus.read,
       ),

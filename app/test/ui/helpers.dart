@@ -1,8 +1,8 @@
-import 'package:chatito/domain/domain.dart';
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/platform/server_config.dart';
-import 'package:chatito/ui/app.dart';
-import 'package:chatito/ui/providers.dart';
+import 'package:piriquito/domain/domain.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/platform/server_config.dart';
+import 'package:piriquito/ui/app.dart';
+import 'package:piriquito/ui/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -49,7 +49,7 @@ Future<FakeChatFacade> pumpApp(
         chatFacadeProvider.overrideWithValue(f),
         ..._withDefaultServerUrl(overrides),
       ],
-      child: ChatitoApp(initialLocation: initialLocation),
+      child: PiriquitoApp(initialLocation: initialLocation),
     ),
   );
   await tester.pumpAndSettle();
@@ -80,8 +80,8 @@ Future<void> pumpScreen(
         ..._withDefaultServerUrl(overrides),
       ],
       child: MaterialApp(
-        localizationsDelegates: ChatitoApp.localizationsDelegates,
-        supportedLocales: ChatitoApp.supportedLocales,
+        localizationsDelegates: PiriquitoApp.localizationsDelegates,
+        supportedLocales: PiriquitoApp.supportedLocales,
         locale: const Locale('pt', 'BR'),
         home: child,
       ),

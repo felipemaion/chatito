@@ -25,7 +25,7 @@ if (googleServicesFile.exists()) {
 }
 
 android {
-    namespace = "br.com.maion.chatito"
+    namespace = "br.com.maion.piriquito"
     compileSdk = 37 // flutter_secure_storage exige >= 37 (Flutter 3.47 usa 36 por padrão)
     ndkVersion = flutter.ndkVersion
 
@@ -38,7 +38,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "br.com.maion.chatito"
+        applicationId = "br.com.maion.piriquito"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

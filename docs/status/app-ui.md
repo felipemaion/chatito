@@ -35,7 +35,7 @@
   Golden tests não feitos (opcional).
 - **7. Unificação com a `ChatFacade` real do app-core** (`git merge origin/main`, app-core #4 em `608c291`):
   apaguei `lib/ui/contracts.dart` e `lib/ui/fake/fake_chat_facade.dart`; toda a UI e os testes passaram a
-  depender de `package:chatito/domain/domain.dart` (+ `protocol/protocol.dart` para `User`/`Device`/`UserRole`)
+  depender de `package:piriquito/domain/domain.dart` (+ `protocol/protocol.dart` para `User`/`Device`/`UserRole`)
   e da `FakeChatFacade` do app-core (`domain/fakes/fake_chat_facade.dart`). `lib/ui/providers.dart` reescrito
   como `Notifier` que assina os `watch*()` reais (streams emitem o valor atual ao ouvir; estado inicial
   síncrono é o "vazio" — `NotRegistered`, `offline`, listas vazias — até a primeira emissão chegar).
@@ -46,13 +46,13 @@
   **Progresso de anexo** (não modelado na interface real — `sendFile`/`readAttachment` são `Future`/`Stream`
   opacos): resolvido com `lib/ui/attachment_progress.dart` (fração de download por `blobId`, contando bytes
   do `Stream<List<int>>`) + `lib/platform/attachment_files.dart` (materializa o anexo decifrado em
-  `Directory.systemTemp/chatito/`, sem depender de `path_provider`); upload não tem progresso incremental
+  `Directory.systemTemp/piriquito/`, sem depender de `path_provider`); upload não tem progresso incremental
   (o `Future` só resolve com o envio completo), então o composer só mostra "enviando" indeterminado.
   **`removeDevice`/`setPushToken` sem equivalente na fachada real**: removida a ação de remover aparelho
   de Ajustes (só mostra a lista); `push.dart` não repassa mais o token FCM ao núcleo.
   **Wiring de plataforma real** (`platform/`): `secure_key_store.dart` (`KeyStore` sobre
   `flutter_secure_storage`), `real_chat_facade_provider.dart` (`RealChatFacade` com `SodiumCryptoBox`/
-  `SodiumFileCipher` via `SodiumInit.init()`, `ChatDatabase(driftDatabase(name: 'chatito'))`), `server_config.dart`
+  `SodiumFileCipher` via `SodiumInit.init()`, `ChatDatabase(driftDatabase(name: 'piriquito'))`), `server_config.dart`
   (`serverUrlProvider`, padrão `http://127.0.0.1:8080` desktop / `http://10.0.2.2:8080` Android). `main.dart`
   monta essas dependências no boot e liga `chatFacadeProvider` à fachada real (nada de fake em produção).
   Onboarding ganhou o campo **Servidor**, editável, que reconstrói a fachada (via `serverUrlProvider`) antes
@@ -235,7 +235,7 @@
     nome exato do terceiro teste para investigar.
 - **15. KeyStore em arquivo para desktop — entregue.** `platform/file_key_store.dart`: `FileKeyStore`
   (`extends MapKeyStore`, mesma base de `SecureKeyStore`) grava tudo num único JSON em
-  `getApplicationSupportDirectory()/chatito/keystore.json`, escrita atômica (`.tmp` + rename), permissão
+  `getApplicationSupportDirectory()/piriquito/keystore.json`, escrita atômica (`.tmp` + rename), permissão
   `0600` via `chmod` (POSIX — macOS/Linux; sem equivalente ACL no Windows, documentado no código: a proteção
   lá vem do próprio `%LOCALAPPDATA%` ser exclusivo do usuário). `migrateFrom(KeyStore old)` copia
   identidade/token/sessão do keystore antigo (keychain) **só se o arquivo ainda estiver vazio** e **nunca

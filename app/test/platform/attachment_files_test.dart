@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:chatito/platform/attachment_files.dart';
+import 'package:piriquito/platform/attachment_files.dart';
 import 'package:test/test.dart';
 
 void main() {

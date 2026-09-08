@@ -23,7 +23,7 @@ Future<void> main() async {
   await setupWindow(platform);
 
   final sodium = await SodiumInit.init();
-  final db = ChatDatabase(driftDatabase(name: 'chatito'));
+  final db = ChatDatabase(driftDatabase(name: 'piriquito'));
   final keyStore = await _openKeyStore(platform);
   // Lida ANTES de montar a fachada: nunca conecta no endereço padrão de dev
   // (inalcançável fora do emulador/desktop) se já existe uma URL salva de
@@ -71,7 +71,7 @@ class MainApp extends ConsumerWidget {
     return AppServices(
       onOpenConversation: (id) =>
           ref.read(routerProvider(null)).go('/c/${Uri.encodeComponent(id)}'),
-      child: const ChatitoApp(),
+      child: const PiriquitoApp(),
     );
   }
 }

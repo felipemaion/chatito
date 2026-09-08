@@ -40,20 +40,20 @@ Tamanho esperado: **KB a poucos MB** (4 pessoas, N devices, fila curta).
 ## Agendar (opcional — cron do host, SERVER.md §8)
 
 ```bash
-sudo tee /etc/cron.d/chatito-backup >/dev/null <<'EOF'
+sudo tee /etc/cron.d/piriquito-backup >/dev/null <<'EOF'
 15 3 * * * root /usr/bin/sqlite3 /home/<DOMINIO>/data/relay.db ".backup /home/<DOMINIO>/backups/relay-$(date -u +\%F).db" && find /home/<DOMINIO>/backups -name 'relay-*.db' -mtime +14 -delete
 EOF
 sudo install -d -m 0700 /home/<DOMINIO>/backups
 ```
 
-Copie para fora do servidor de vez em quando (`scp ubuntu@<IP_DO_SERVIDOR>:/home/<DOMINIO>/backups/relay-*.db ~/Backups/chatito/`).
+Copie para fora do servidor de vez em quando (`scp ubuntu@<IP_DO_SERVIDOR>:/home/<DOMINIO>/backups/relay-*.db ~/Backups/piriquito/`).
 O db contém apenas metadados (chaves públicas, hashes de token, fila cifrada); mesmo assim trate
 como confidencial: quem tem o db + o env consegue **personificar o servidor**, não ler mensagens.
 
 ## Restaurar
 
 ```bash
-cd /home/<DOMINIO>/repo && export CHATITO_DOMAIN=<DOMINIO>
+cd /home/<DOMINIO>/repo && export PIRIQUITO_DOMAIN=<DOMINIO>
 docker compose -f docker/docker-compose.yml stop relay
 sudo rm -f /home/<DOMINIO>/data/relay.db /home/<DOMINIO>/data/relay.db-wal /home/<DOMINIO>/data/relay.db-shm
 sudo gunzip -c /home/<DOMINIO>/backups/relay-YYYY-MM-DD.db.gz | sudo tee /home/<DOMINIO>/data/relay.db >/dev/null

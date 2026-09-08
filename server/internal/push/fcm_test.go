@@ -17,8 +17,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/felipemaion/chatito/server/internal/api"
-	"github.com/felipemaion/chatito/server/internal/push"
+	"github.com/felipemaion/piriquito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/push"
 )
 
 func serviceAccountJSON(t *testing.T, tokenURL string) []byte {
@@ -29,8 +29,8 @@ func serviceAccountJSON(t *testing.T, tokenURL string) []byte {
 	}
 	pemKey := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
 	sa := map[string]string{
-		"type": "service_account", "project_id": "chatito-test", "private_key_id": "k1",
-		"private_key": string(pemKey), "client_email": "relay@chatito-test.iam.gserviceaccount.com",
+		"type": "service_account", "project_id": "piriquito-test", "private_key_id": "k1",
+		"private_key": string(pemKey), "client_email": "relay@piriquito-test.iam.gserviceaccount.com",
 		"token_uri": tokenURL,
 	}
 	b, _ := json.Marshal(sa)
@@ -50,7 +50,7 @@ func newFakeGoogle(t *testing.T) *fakeGoogle {
 	t.Helper()
 	g := &fakeGoogle{}
 	g.sendCode.Store(200)
-	g.sendReply.Store(`{"name":"projects/chatito-test/messages/1"}`)
+	g.sendReply.Store(`{"name":"projects/piriquito-test/messages/1"}`)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /token", func(w http.ResponseWriter, r *http.Request) {
 		g.tokens.Add(1)
@@ -62,7 +62,7 @@ func newFakeGoogle(t *testing.T) *fakeGoogle {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"access_token":"at-123","token_type":"Bearer","expires_in":3600}`))
 	})
-	mux.HandleFunc("POST /v1/projects/chatito-test/messages:send", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /v1/projects/piriquito-test/messages:send", func(w http.ResponseWriter, r *http.Request) {
 		g.sends.Add(1)
 		if r.Header.Get("Authorization") != "Bearer at-123" {
 			http.Error(w, "no auth", http.StatusUnauthorized)
@@ -177,7 +177,7 @@ func TestFromEnv(t *testing.T) {
 		t.Fatalf("wake: %v", err)
 	}
 	// ProjectID is exposed for logging.
-	if f, ok := p.(*push.FCM); !ok || f.ProjectID() != "chatito-test" {
+	if f, ok := p.(*push.FCM); !ok || f.ProjectID() != "piriquito-test" {
 		t.Fatalf("project = %v", p)
 	}
 }

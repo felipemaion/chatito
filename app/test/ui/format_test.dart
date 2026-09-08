@@ -1,5 +1,5 @@
-import 'package:chatito/domain/domain.dart';
-import 'package:chatito/ui/format.dart';
+import 'package:piriquito/domain/domain.dart';
+import 'package:piriquito/ui/format.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 

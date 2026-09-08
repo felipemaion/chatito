@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 func mkDevice(t *testing.T, s *store.Store, userID, name string) (store.Device, string) {

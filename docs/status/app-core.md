@@ -54,8 +54,8 @@
 - `dart format` e `flutter analyze --fatal-infos`: limpos (não dependem do build hook).
 
 ## RealChatFacade — connect() single-flight (3 RelayWs concorrentes, bug de campo)
-- **Evidência de logcat** (build com prints de diagnóstico): `[chatito.boot] restore: session=true
-  token=true keys=true` seguido de **três** linhas `[chatito.ws] conectando (geração 1)` em 7ms,
+- **Evidência de logcat** (build com prints de diagnóstico): `[piriquito.boot] restore: session=true
+  token=true keys=true` seguido de **três** linhas `[piriquito.ws] conectando (geração 1)` em 7ms,
   cada uma com seu próprio backoff (`reagendando em 1140ms/841ms/937ms`) — três `RelayWs`
   concorrentes brigando entre si (4409), causados pelo autoConnect do boot + gatilhos da UI
   chamando `connect()` quase ao mesmo tempo.
@@ -105,7 +105,7 @@
 - Achado real ao escrever os testes: fechar o canal abandonado (`sink.close()`) podia disparar o
   `onDone` **dele mesmo**, síncrono ou via microtask, antes da geração ser incrementada —
   corrigido incrementando a geração *antes* de fechar o canal velho.
-- Logs estruturados via `dart:developer log(name: 'chatito.ws')` (aparecem no logcat do Android,
+- Logs estruturados via `dart:developer log(name: 'piriquito.ws')` (aparecem no logcat do Android,
   tag `flutter`, e no Console.app do macOS) em cada transição — conectando/geração N, hello,
   fechado com código+motivo, reagendando em Xms, ignorado por geração antiga, watchdog. Nunca
   inclui conteúdo de mensagem nem o token. Motivo: a APK release não emitia nenhum log visível
@@ -218,10 +218,10 @@
 
 ---
 
-## Interface pública para o **app-ui** (`import 'package:chatito/domain/domain.dart'`)
+## Interface pública para o **app-ui** (`import 'package:piriquito/domain/domain.dart'`)
 
 Tudo Dart puro. A UI depende só de `domain/domain.dart` (+ `protocol/protocol.dart` para `User`/`Device`).
-Para desenvolver sem servidor: `import 'package:chatito/domain/fakes/fake_chat_facade.dart'`.
+Para desenvolver sem servidor: `import 'package:piriquito/domain/fakes/fake_chat_facade.dart'`.
 
 ```dart
 abstract interface class ChatFacade {

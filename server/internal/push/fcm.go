@@ -20,7 +20,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
-	"github.com/felipemaion/chatito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/api"
 )
 
 const (
