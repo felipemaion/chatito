@@ -24,6 +24,7 @@ abstract final class S {
   static const messageHint = 'Mensagem';
   static const send = 'Enviar';
   static const attach = 'Anexar arquivo';
+  static const attachMedia = 'Anexar foto ou vídeo';
   static const download = 'Baixar';
   static const open = 'Abrir';
   static const uploading = 'Enviando';

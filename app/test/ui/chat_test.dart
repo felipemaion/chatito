@@ -9,13 +9,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers.dart';
 
 class _FakePicker implements FilePickerService {
-  _FakePicker(this.result);
+  _FakePicker(this.result, {this.media = const []});
   final PickedFile? result;
+  final List<PickedFile> media;
   int calls = 0;
+  int mediaCalls = 0;
   @override
   Future<PickedFile?> pick() async {
     calls++;
     return result;
+  }
+
+  @override
+  Future<List<PickedFile>> pickMedia() async {
+    mediaCalls++;
+    return media;
   }
 }
 
@@ -161,6 +169,69 @@ void main() {
       find.byKey(Key('open-${last.attachments.single.blobId}')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('anexar mídia envia cada foto ou vídeo escolhido', (
+    tester,
+  ) async {
+    final f = _seeded();
+    final before = (await f.watchMessages(family).first).length;
+    final picker = _FakePicker(
+      null,
+      media: const [
+        PickedFile(
+          path: '/nao-existe/foto1.jpg',
+          name: 'foto1.jpg',
+          size: 2048,
+          mime: 'image/jpeg',
+        ),
+        PickedFile(
+          path: '/nao-existe/clipe.mp4',
+          name: 'clipe.mp4',
+          size: 8192,
+          mime: 'video/mp4',
+        ),
+      ],
+    );
+    await pumpScreen(
+      tester,
+      ChatScreen(convId: family),
+      facade: f,
+      overrides: [
+        filePickerProvider.overrideWithValue(picker),
+        fileReaderProvider.overrideWithValue(
+          _FakeFileReader(List.generate(8192, (i) => i % 256)),
+        ),
+      ],
+    );
+    await tester.tap(find.byKey(const Key('attach-media')));
+    await tester.pumpAndSettle();
+    expect(picker.mediaCalls, 1);
+    expect(picker.calls, 0);
+    final msgs = await f.watchMessages(family).first;
+    expect(msgs.length, before + 2);
+    final sent = msgs.sublist(msgs.length - 2);
+    expect(sent.map((m) => m.kind), everyElement(MessageKind.file));
+    expect(sent.map((m) => m.attachments.single.mime), [
+      'image/jpeg',
+      'video/mp4',
+    ]);
+    expect(find.text('foto1.jpg'), findsOneWidget);
+    expect(find.text('clipe.mp4'), findsOneWidget);
+  });
+
+  testWidgets('seletor de mídia cancelado não envia nada', (tester) async {
+    final f = _seeded();
+    final before = (await f.watchMessages(family).first).length;
+    await pumpScreen(
+      tester,
+      ChatScreen(convId: family),
+      facade: f,
+      overrides: [filePickerProvider.overrideWithValue(_FakePicker(null))],
+    );
+    await tester.tap(find.byKey(const Key('attach-media')));
+    await tester.pumpAndSettle();
+    expect((await f.watchMessages(family).first).length, before);
   });
 
   testWidgets('picker cancelado não envia nada', (tester) async {

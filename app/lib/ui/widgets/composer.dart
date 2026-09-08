@@ -3,17 +3,19 @@ import 'package:flutter/services.dart';
 
 import '../strings.dart';
 
-/// Campo de texto + anexar + enviar. No desktop, Enter envia e Shift+Enter quebra linha.
+/// Campo de texto + anexar (arquivo, mídia) + enviar. No desktop, Enter envia e Shift+Enter quebra linha.
 class Composer extends StatefulWidget {
   const Composer({
     super.key,
     required this.onSend,
     required this.onAttach,
+    required this.onAttachMedia,
     this.enterSends = true,
     this.busy = false,
   });
   final Future<void> Function(String text) onSend;
   final VoidCallback onAttach;
+  final VoidCallback onAttachMedia;
   final bool enterSends;
   final bool busy;
 
@@ -75,6 +77,12 @@ class _ComposerState extends State<Composer> {
               tooltip: S.attach,
               icon: const Icon(Icons.attach_file),
               onPressed: widget.busy ? null : widget.onAttach,
+            ),
+            IconButton(
+              key: const Key('attach-media'),
+              tooltip: S.attachMedia,
+              icon: const Icon(Icons.photo_library_outlined),
+              onPressed: widget.busy ? null : widget.onAttachMedia,
             ),
             Expanded(
               child: Focus(
