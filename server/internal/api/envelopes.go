@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 const defaultListLimit = 100

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/api"
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 func newBlobEnv(t *testing.T) *env {

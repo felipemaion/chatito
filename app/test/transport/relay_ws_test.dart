@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:chatito/domain/models.dart' show ConnectionState;
-import 'package:chatito/protocol/protocol.dart';
-import 'package:chatito/transport/transport.dart';
+import 'package:piriquito/domain/models.dart' show ConnectionState;
+import 'package:piriquito/protocol/protocol.dart';
+import 'package:piriquito/transport/transport.dart';
 import 'package:test/test.dart';
 
 import '../support/fake_relay.dart';

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 type ctxKey int

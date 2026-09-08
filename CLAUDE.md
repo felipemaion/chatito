@@ -1,4 +1,4 @@
-# Chatito — regras para agentes
+# Piriquito — regras para agentes
 
 Leia `PLAN.md` (visão) e `docs/PROTOCOL.md` (contrato) antes de codar. Escopo de cada agente
 está em `docs/status/<agente>.md`; **não edite arquivos fora do seu escopo** — peça ao orquestrador.
@@ -31,7 +31,7 @@ O orquestrador lê esse arquivo, não o seu terminal. Respostas curtas; não rel
 
 ## Lições de campo (obrigatórias)
 - **Logs em release**: `dart:developer log` não aparece no APK release. Transições importantes
-  (boot, WebSocket) usam `print('[chatito.<área>] …')`, sem conteúdo de mensagem nem token.
+  (boot, WebSocket) usam `print('[piriquito.<área>] …')`, sem conteúdo de mensagem nem token.
 - **Config persistida**: tudo que o usuário digita no onboarding (URL do servidor, nome) vai para o
   `KeyStore`; nunca dependa de estado em memória sobreviver a um reinício.
 - **Sessão antes de rede**: qualquer método da fachada que precise de sessão aguarda `_ready`;
@@ -39,8 +39,8 @@ O orquestrador lê esse arquivo, não o seu terminal. Respostas curtas; não rel
 - **Navegação**: tela que pode abrir sem pilha (banner, deep link) tem botão de voltar explícito;
   prefira `push` a `go` para telas secundárias.
 - **Desktop**: chaves em `FileKeyStore`; não use keychain do macOS sem assinatura com Team ID.
-- **Depuração em campo**: `adb -s <serial> logcat -d | grep 'chatito\.'` e o log do relay
+- **Depuração em campo**: `adb -s <serial> logcat -d | grep 'piriquito\.'` e o log do relay
   (`docker compose -f docker/docker-compose.dev.yml logs relay`). Antes de concluir "não conecta",
   confirme que o app está em primeiro plano com a tela ligada (`svc power stayon usb` nos testes).
 - **Validação local**: `flutter test` no Mac exige Xcode completo; alternativa é a imagem
-  `chatito-flutter:3.47.2` (Dockerfile no scratchpad da sessão, replicável a partir do `debian:bookworm-slim`).
+  `piriquito-flutter:3.47.2` (Dockerfile no scratchpad da sessão, replicável a partir do `debian:bookworm-slim`).

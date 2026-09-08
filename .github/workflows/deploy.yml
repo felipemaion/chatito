@@ -1,7 +1,7 @@
 name: deploy
 
 # CD para o VPS Oracle (SERVER.md §8 no repo OracleServer): o Actions abre UMA conexão SSH e o
-# forced-command do user de deploy (chatito01) roda cron/deploy.sh no servidor
+# forced-command do user de deploy (piriquito01) roda cron/deploy.sh no servidor
 # (git reset em origin/main + docker compose up -d --build + gate de health).
 #
 # Regras do servidor:

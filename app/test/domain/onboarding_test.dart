@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:chatito/crypto/crypto.dart';
-import 'package:chatito/domain/models.dart';
-import 'package:chatito/domain/use_cases/context.dart';
-import 'package:chatito/domain/use_cases/directory_sync.dart';
-import 'package:chatito/domain/use_cases/onboarding.dart';
-import 'package:chatito/protocol/protocol.dart';
-import 'package:chatito/storage/storage.dart';
-import 'package:chatito/transport/transport.dart';
+import 'package:piriquito/crypto/crypto.dart';
+import 'package:piriquito/domain/models.dart';
+import 'package:piriquito/domain/use_cases/context.dart';
+import 'package:piriquito/domain/use_cases/directory_sync.dart';
+import 'package:piriquito/domain/use_cases/onboarding.dart';
+import 'package:piriquito/protocol/protocol.dart';
+import 'package:piriquito/storage/storage.dart';
+import 'package:piriquito/transport/transport.dart';
 import 'package:drift/native.dart';
 import 'package:sodium/sodium.dart';
 import 'package:test/test.dart';

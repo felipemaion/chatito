@@ -1,4 +1,4 @@
-module github.com/felipemaion/chatito/server
+module github.com/felipemaion/piriquito/server
 
 go 1.25.0
 

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 func (s *Server) createBlob(w http.ResponseWriter, r *http.Request) error {

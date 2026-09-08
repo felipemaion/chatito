@@ -16,9 +16,9 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/felipemaion/chatito/server/internal/api"
-	"github.com/felipemaion/chatito/server/internal/store"
-	"github.com/felipemaion/chatito/server/internal/ws"
+	"github.com/felipemaion/piriquito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/ws"
 )
 
 type env struct {

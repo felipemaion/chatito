@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/janitor"
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/janitor"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 func seed(t *testing.T, st *store.Store, now time.Time) (oldEnv, freshEnv, oldBlob, deliveredBlob, freshBlob, oldInvite string) {

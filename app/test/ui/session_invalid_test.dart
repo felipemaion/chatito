@@ -1,13 +1,13 @@
-import 'package:chatito/domain/domain.dart';
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/platform/app_services.dart';
-import 'package:chatito/platform/connectivity.dart';
-import 'package:chatito/platform/notifications.dart';
-import 'package:chatito/platform/push.dart';
-import 'package:chatito/ui/app.dart';
-import 'package:chatito/ui/providers.dart';
-import 'package:chatito/ui/reconnect.dart';
-import 'package:chatito/ui/strings.dart';
+import 'package:piriquito/domain/domain.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/platform/app_services.dart';
+import 'package:piriquito/platform/connectivity.dart';
+import 'package:piriquito/platform/notifications.dart';
+import 'package:piriquito/platform/push.dart';
+import 'package:piriquito/ui/app.dart';
+import 'package:piriquito/ui/providers.dart';
+import 'package:piriquito/ui/reconnect.dart';
+import 'package:piriquito/ui/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,7 +74,7 @@ Future<ProviderContainer> _pumpApp(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const AppServices(child: ChatitoApp()),
+      child: const AppServices(child: PiriquitoApp()),
     ),
   );
   await tester.pumpAndSettle();

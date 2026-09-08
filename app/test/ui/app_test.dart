@@ -1,6 +1,6 @@
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/ui/layout.dart';
-import 'package:chatito/ui/theme.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/ui/layout.dart';
+import 'package:piriquito/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

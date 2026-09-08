@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:chatito/domain/domain.dart';
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/protocol/protocol.dart';
+import 'package:piriquito/domain/domain.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/protocol/protocol.dart';
 import 'package:test/test.dart';
 
 void main() {

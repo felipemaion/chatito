@@ -1,4 +1,4 @@
-package br.com.maion.chatito
+package br.com.maion.piriquito
 
 import io.flutter.embedding.android.FlutterActivity
 

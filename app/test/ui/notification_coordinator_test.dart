@@ -1,8 +1,8 @@
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/platform/notifications.dart';
-import 'package:chatito/protocol/protocol.dart' show ConvId;
-import 'package:chatito/ui/focus.dart';
-import 'package:chatito/ui/notification_coordinator.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/platform/notifications.dart';
+import 'package:piriquito/protocol/protocol.dart' show ConvId;
+import 'package:piriquito/ui/focus.dart';
+import 'package:piriquito/ui/notification_coordinator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeNotifier implements LocalNotifications {

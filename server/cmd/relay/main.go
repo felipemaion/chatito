@@ -1,4 +1,4 @@
-// Command relay runs the Chatito blind relay server.
+// Command relay runs the Piriquito blind relay server.
 //
 // Usage:
 //
@@ -23,11 +23,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/felipemaion/chatito/server/internal/api"
-	"github.com/felipemaion/chatito/server/internal/janitor"
-	"github.com/felipemaion/chatito/server/internal/push"
-	"github.com/felipemaion/chatito/server/internal/store"
-	"github.com/felipemaion/chatito/server/internal/ws"
+	"github.com/felipemaion/piriquito/server/internal/api"
+	"github.com/felipemaion/piriquito/server/internal/janitor"
+	"github.com/felipemaion/piriquito/server/internal/push"
+	"github.com/felipemaion/piriquito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/ws"
 )
 
 const (

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/felipemaion/chatito/server/internal/store"
+	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
 // IssueInvite creates (if needed) the target user and issues an invite for it.

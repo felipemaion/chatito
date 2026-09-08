@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import '../storage/storage.dart';
 
 /// [KeyStore] em arquivo, para desktop (macOS/Windows/Linux). Guarda tudo num
-/// único JSON em `getApplicationSupportDirectory()/chatito/keystore.json`,
+/// único JSON em `getApplicationSupportDirectory()/piriquito/keystore.json`,
 /// com permissão `0600` (só o dono lê/escreve) onde o SO suporta.
 ///
 /// Existe por causa de problemas reais de integração com o keychain nativo
@@ -23,7 +23,7 @@ class FileKeyStore extends MapKeyStore {
   /// Abre (ou cria) o keystore de arquivo no diretório de dados do app.
   static Future<FileKeyStore> open({String fileName = 'keystore.json'}) async {
     final dir = await getApplicationSupportDirectory();
-    return FileKeyStore(File('${dir.path}/chatito/$fileName'));
+    return FileKeyStore(File('${dir.path}/piriquito/$fileName'));
   }
 
   final File _file;
@@ -40,7 +40,7 @@ class FileKeyStore extends MapKeyStore {
     } on Object catch (e) {
       // Arquivo corrompido/ilegível: melhor começar vazio do que travar o
       // app inteiro por causa do keystore. Nunca apaga o arquivo original.
-      debugPrint('chatito: keystore de arquivo ilegível, ignorando: $e');
+      debugPrint('piriquito: keystore de arquivo ilegível, ignorando: $e');
       return _cache = {};
     }
   }
@@ -62,7 +62,7 @@ class FileKeyStore extends MapKeyStore {
     try {
       await Process.run('chmod', ['600', _file.path]);
     } on Object catch (e) {
-      debugPrint('chatito: não consegui restringir permissão do keystore: $e');
+      debugPrint('piriquito: não consegui restringir permissão do keystore: $e');
     }
   }
 
@@ -101,7 +101,7 @@ class FileKeyStore extends MapKeyStore {
     if (token != null) await writeToken(token);
     if (session != null) await writeSession(session);
     debugPrint(
-      'chatito: keystore migrado do keychain para arquivo em ${_file.path}',
+      'piriquito: keystore migrado do keychain para arquivo em ${_file.path}',
     );
   }
 }

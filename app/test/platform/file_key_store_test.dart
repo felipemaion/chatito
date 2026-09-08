@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:chatito/crypto/crypto.dart';
-import 'package:chatito/platform/file_key_store.dart';
-import 'package:chatito/storage/storage.dart';
+import 'package:piriquito/crypto/crypto.dart';
+import 'package:piriquito/platform/file_key_store.dart';
+import 'package:piriquito/storage/storage.dart';
 import 'package:test/test.dart';
 
 Directory _tmpDir() => Directory.systemTemp.createTempSync(
-  'chatito_keystore_test_${DateTime.now().microsecondsSinceEpoch}',
+  'piriquito_keystore_test_${DateTime.now().microsecondsSinceEpoch}',
 );
 
 IdentityKeyPair _keyPair([int seed = 1]) => IdentityKeyPair(
@@ -142,7 +142,7 @@ void main() {
     },
   );
 
-  test('FileKeyStore.open() usa getApplicationSupportDirectory/chatito/keystore.json', () async {
+  test('FileKeyStore.open() usa getApplicationSupportDirectory/piriquito/keystore.json', () async {
     // Só valida que a fábrica não lança e devolve algo utilizável — não
     // depende de canal de plataforma real fora de um app Flutter rodando,
     // então este teste fica só documentando o contrato via FileKeyStore

@@ -28,7 +28,7 @@ class SystemConnectivityWatcher implements ConnectivityWatcher {
         if (results.any((r) => r != ConnectivityResult.none)) onOnline();
       });
     } catch (e) {
-      debugPrint('chatito: connectivity_plus indisponível: $e');
+      debugPrint('piriquito: connectivity_plus indisponível: $e');
     }
   }
 }

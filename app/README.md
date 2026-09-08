@@ -1,3 +1,3 @@
-# chatito
+# piriquito
 
 A new Flutter project.

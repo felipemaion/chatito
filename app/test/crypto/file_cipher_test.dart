@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:chatito/crypto/crypto.dart';
+import 'package:piriquito/crypto/crypto.dart';
 import 'package:test/test.dart';
 
 import '../support/sodium.dart';

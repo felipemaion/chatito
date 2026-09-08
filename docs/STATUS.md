@@ -1,9 +1,9 @@
-# Chatito — estado do projeto (2026-09-08)
+# Piriquito — estado do projeto (2026-09-08)
 
 Fonte única de "onde estamos". Histórico por agente em `docs/status/<agente>.md`.
 
 ## Funciona hoje
-- **Relay** (Go) em Docker local, projeto `chatito`, `127.0.0.1:8080` (exposto na LAN via override
+- **Relay** (Go) em Docker local, projeto `piriquito`, `127.0.0.1:8080` (exposto na LAN via override
   quando necessário). Bootstrap/convites: `docker compose -f docker/docker-compose.dev.yml exec -T relay /relay admin invite --user NOME`.
 - **App** (Flutter) em `main`: Android (APK arm64 release, `flutter build apk --release --split-per-abi`),
   macOS (build debug local; keychain substituído por arquivo), Windows (build na CI sob demanda).

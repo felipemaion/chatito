@@ -1,8 +1,8 @@
-import 'package:chatito/domain/domain.dart';
-import 'package:chatito/domain/fakes/fake_chat_facade.dart';
-import 'package:chatito/platform/files.dart';
-import 'package:chatito/protocol/protocol.dart' show ConvId;
-import 'package:chatito/ui/screens/chat_screen.dart';
+import 'package:piriquito/domain/domain.dart';
+import 'package:piriquito/domain/fakes/fake_chat_facade.dart';
+import 'package:piriquito/platform/files.dart';
+import 'package:piriquito/protocol/protocol.dart' show ConvId;
+import 'package:piriquito/ui/screens/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,7 +44,7 @@ void main() {
     tester,
   ) async {
     await pumpScreen(tester, ChatScreen(convId: family));
-    expect(find.text('Bem-vindos ao Chatito! 🎉'), findsOneWidget);
+    expect(find.text('Bem-vindos ao Piriquito! 🎉'), findsOneWidget);
     expect(find.text('Mãe'), findsWidgets);
     expect(find.text('Que chique! Funciona no meu celular?'), findsOneWidget);
   });

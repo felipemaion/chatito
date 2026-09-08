@@ -10,12 +10,12 @@
 2. `.github/workflows/release.yml`: em tag `v*`, builds: Android APK (assinado com keystore em
    secrets `ANDROID_KEYSTORE_B64`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD`; sem eles, APK debug),
    macOS `.dmg` (sem notarização; `create-dmg`), Windows `.zip` da pasta `build/windows/x64/runner/Release`;
-   anexa tudo a um GitHub Release (privado). Imagem do servidor: `ghcr.io/felipemaion/chatito-relay:<tag>` multi-arch.
+   anexa tudo a um GitHub Release (privado). Imagem do servidor: `ghcr.io/felipemaion/piriquito-relay:<tag>` multi-arch.
 3. `.github/workflows/deploy.yml`: `workflow_dispatch` + push em `main` com mudanças em `server/**` ou `docker/**`;
    SSH nativo (não `appleboy`), host key fixa em `DEPLOY_KNOWN_HOSTS`, 1 conexão por deploy
    (SERVER.md §8). Template: igual ao do Ondulato.
-4. `docs/ops/RUNBOOK.md`: passo a passo do checklist SERVER.md §9 preenchido para o Chatito
-   (user `chatito01`, `/home/<DOMINIO>/`, bloco Caddy com `reverse_proxy chatito-relay:8080`
+4. `docs/ops/RUNBOOK.md`: passo a passo do checklist SERVER.md §9 preenchido para o Piriquito
+   (user `piriquito01`, `/home/<DOMINIO>/`, bloco Caddy com `reverse_proxy piriquito-relay:8080`
    e suporte a WebSocket, secrets, bootstrap do admin via `docker compose exec relay /relay admin bootstrap`),
    `docs/ops/FIREBASE.md` (como criar o projeto, baixar `google-services.json` e o service account, onde colocar),
    `docs/ops/BACKUP.md` (o servidor não guarda histórico; backup = só `data/relay.db` de metadados).

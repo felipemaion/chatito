@@ -6,8 +6,8 @@ import 'router.dart';
 import 'strings.dart';
 import 'theme.dart';
 
-class ChatitoApp extends ConsumerWidget {
-  const ChatitoApp({super.key, this.initialLocation});
+class PiriquitoApp extends ConsumerWidget {
+  const PiriquitoApp({super.key, this.initialLocation});
 
   /// Rota inicial (útil em testes e deep links).
   final String? initialLocation;

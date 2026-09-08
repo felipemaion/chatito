@@ -1,4 +1,4 @@
-# Chatito — Protocolo v1 (contrato cliente ↔ servidor)
+# Piriquito — Protocolo v1 (contrato cliente ↔ servidor)
 
 Versão do protocolo: **1**. Mudanças passam pelo orquestrador e atualizam as fixtures em
 `docs/protocol/fixtures/`. Servidor e app têm contract tests contra essas fixtures.
