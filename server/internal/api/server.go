@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/felipemaion/piriquito/server/internal/site"
 	"github.com/felipemaion/piriquito/server/internal/store"
 )
 
@@ -119,6 +120,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/v1/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, CodeNotFound, "no such route")
 	})
+	// Tudo fora de /v1 e /healthz é a página pública (sobre o app + downloads).
+	mux.Handle("/", site.Handler())
 	return mux
 }
 
