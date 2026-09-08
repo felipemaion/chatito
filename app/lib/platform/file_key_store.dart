@@ -62,7 +62,9 @@ class FileKeyStore extends MapKeyStore {
     try {
       await Process.run('chmod', ['600', _file.path]);
     } on Object catch (e) {
-      debugPrint('piriquito: não consegui restringir permissão do keystore: $e');
+      debugPrint(
+        'piriquito: não consegui restringir permissão do keystore: $e',
+      );
     }
   }
 
