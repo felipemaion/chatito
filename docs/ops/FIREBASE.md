@@ -12,7 +12,7 @@ acorda o app em segundo plano. Precisa ser feito **por você** (conta Google); l
 
 ## 2. Registrar o app Android e baixar `google-services.json`
 
-1. Na visão geral → ícone **Android** → *Nome do pacote Android*: **`br.com.maion.piriquito`**
+1. Na visão geral → ícone **Android** → *Nome do pacote Android*: **`com.maionesys.piriquito`**
    (é o `applicationId` em `app/android/app/build.gradle.kts`; tem que bater exatamente).
 2. Apelido: `Piriquito Android`. Certificado SHA-1: opcional (só para Auth/Dynamic Links — não usamos).
 3. **Baixar `google-services.json`** → colocar em **`app/android/app/google-services.json`**.

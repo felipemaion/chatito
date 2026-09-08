@@ -1,4 +1,4 @@
-package br.com.maion.piriquito
+package com.maionesys.piriquito
 
 import io.flutter.embedding.android.FlutterActivity
 

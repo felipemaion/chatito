@@ -8,7 +8,7 @@
 PRODUCT_NAME = Piriquito
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = br.com.maion.piriquito
+PRODUCT_BUNDLE_IDENTIFIER = com.maionesys.piriquito
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 br.com.maion. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Maionesys. All rights reserved.
