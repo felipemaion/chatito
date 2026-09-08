@@ -62,9 +62,70 @@ void main() {
     await tester.pump();
     expect(push.wake, isNotNull);
     push.wake!();
-    push.token!('fcm-abc'); // sem equivalente na fachada; só não deve lançar
+    push.token!('fcm-abc');
     await tester.pump();
     expect(await f.watchConnection().first, ConnectionState.online);
+    expect(f.pushToken, 'fcm-abc');
+  });
+
+  testWidgets('token FCM recebido antes do registro é enviado ao registrar', (
+    tester,
+  ) async {
+    final f = FakeChatFacade(
+      startRegistered: false,
+      autoReplyDelay: Duration.zero,
+    );
+    final push = _FakePush();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          chatFacadeProvider.overrideWithValue(f),
+          pushWakerProvider.overrideWithValue(push),
+          connectivityWatcherProvider.overrideWithValue(
+            const NoopConnectivityWatcher(),
+          ),
+          localNotificationsProvider.overrideWithValue(_NoopNotifier()),
+        ],
+        child: const AppServices(child: SizedBox()),
+      ),
+    );
+    await tester.pump();
+    push.token!('fcm-cedo');
+    await tester.pump();
+    expect(f.pushToken, isNull, reason: 'sem sessão não há como enviar');
+    await f.register(
+      inviteCode: 'ABCD-EFGH',
+      deviceName: 'Teste',
+      platform: 'android',
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(f.pushToken, 'fcm-cedo');
+  });
+
+  testWidgets('token FCM atualizado (refresh) é reenviado', (tester) async {
+    final f = _seeded();
+    final push = _FakePush();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          chatFacadeProvider.overrideWithValue(f),
+          pushWakerProvider.overrideWithValue(push),
+          connectivityWatcherProvider.overrideWithValue(
+            const NoopConnectivityWatcher(),
+          ),
+          localNotificationsProvider.overrideWithValue(_NoopNotifier()),
+        ],
+        child: const AppServices(child: SizedBox()),
+      ),
+    );
+    await tester.pump();
+    push.token!('fcm-1');
+    await tester.pump();
+    push.token!('fcm-2');
+    await tester.pump();
+    expect(f.pushToken, 'fcm-2');
+    expect(f.pushTokenCalls, 2);
   });
 
   testWidgets(

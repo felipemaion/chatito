@@ -125,6 +125,17 @@ class FakeChatFacade implements ChatFacade {
   @override
   Future<void> refreshDirectory() async => _requireRegistered();
 
+  /// Último token enviado por [setPushToken] e quantas vezes foi chamado.
+  String? pushToken;
+  int pushTokenCalls = 0;
+
+  @override
+  Future<void> setPushToken(String? token) async {
+    _requireRegistered();
+    pushToken = token;
+    pushTokenCalls++;
+  }
+
   @override
   Future<SafetyNumber> safetyNumber(String deviceId) async {
     final me = _requireRegistered();

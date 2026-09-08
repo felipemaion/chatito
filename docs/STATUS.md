@@ -34,9 +34,10 @@ uma vez: a faixa "Servidor não configurado" leva até lá).
 ## Pendências
 | Item | Dono | Observação |
 | --- | --- | --- |
-| Reinstalar nos celulares o APK **assinado** da v0.1.0 (o instalado é assinado com chave debug, não atualiza por cima) | Felipe | `adb uninstall com.maionesys.piriquito` + instalar `piriquito-v0.1.0-android.apk`; se já fez onboarding, pedir convite novo |
+| **Mensagem cifrada só para aparelhos já conhecidos**: quem registra depois não recebe até o remetente atualizar o diretório (visto em campo 2026-09-08: grupo Família vazio no S8; após reiniciar o A26, 1:1 chegou). Corrigir: atualizar diretório antes de enviar e/ou evento de diretório no WS | app-core | `DirectorySync.refresh` só no boot |
+| "Chave de segurança alterada" na 1ª vez que um contato aparece (falso positivo do `key_change` v1) | app-core | já listado como rotação de chave |
 | Teste instável `TestMalformedFrameClosesWithError` (ws) na CI | server | falhou 1× no PR #18, passou ao reexecutar |
-| Onboarding no app novo (A26, S8, Mac) em **produção** (2026-09-08) | Felipe | APK Piriquito instalado no A26 e no S8 (o Chatito antigo continua ao lado até desinstalar); Mac usa `Piriquito.app`. Build release já vem com `https://piriquito.maionesys.com` como servidor padrão. Convites: Felipe `A0QP-KYAN` (válido até 2026-09-15); Mãe: pedido ao orquestrador do Oracle |
+| Onboarding do **Mac** em produção (A26 e S8 já entraram em 2026-09-08 com a v0.1.0) | Felipe | APK Piriquito instalado no A26 e no S8 (o Chatito antigo continua ao lado até desinstalar); Mac usa `Piriquito.app`. Build release já vem com `https://piriquito.maionesys.com` como servidor padrão. Convites: Felipe `A0QP-KYAN` (válido até 2026-09-15); Mãe: pedido ao orquestrador do Oracle |
 | Remover aparelhos "Mac" órfãos | Felipe | Ajustes → Meus aparelhos |
 | Rotação de chave (`key_change` emitido) | app-core | v1 só detecta troca pelo diretório |
 | Histórico do git contém o IP do Oracle | Felipe decide | `git filter-repo` + force push, se quiser |

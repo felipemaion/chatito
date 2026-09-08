@@ -41,7 +41,13 @@ class _AppServicesState extends ConsumerState<AppServices>
     )..start();
     ref
         .read(pushWakerProvider)
-        .init(onWake: () => unawaited(reconnectAndTrack(ref)), onToken: (_) {});
+        .init(
+          onWake: () => unawaited(reconnectAndTrack(ref)),
+          onToken: (token) {
+            _fcmToken = token;
+            unawaited(_syncPushToken());
+          },
+        );
     ref
         .read(connectivityWatcherProvider)
         .init(onOnline: () => unawaited(reconnectAndTrack(ref)));
@@ -52,8 +58,26 @@ class _AppServicesState extends ConsumerState<AppServices>
       if (!(prev?.isRegistered ?? false) && next.isRegistered) {
         ref.read(sessionInvalidProvider.notifier).set(false);
         unawaited(reconnectAndTrack(ref));
+        unawaited(_syncPushToken());
       }
     });
+  }
+
+  /// Último token FCM informado pelo [PushWaker]; reenviado quando a sessão
+  /// aparece (onboarding depois do boot) e a cada refresh do token.
+  String? _fcmToken;
+
+  Future<void> _syncPushToken() async {
+    final token = _fcmToken;
+    if (token == null || !ref.read(sessionProvider).isRegistered) return;
+    try {
+      await ref.read(chatFacadeProvider).setPushToken(token);
+      // ignore: avoid_print
+      print('[piriquito.push] token registrado no relay');
+    } catch (e) {
+      // ignore: avoid_print
+      print('[piriquito.push] falha ao registrar token: $e');
+    }
   }
 
   @override
