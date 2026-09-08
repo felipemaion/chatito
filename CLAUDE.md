@@ -28,3 +28,19 @@ O orquestrador lê esse arquivo, não o seu terminal. Respostas curtas; não rel
 ## Skills recomendadas
 `ecc:tdd-workflow`, `ecc:golang-testing`, `ecc:golang-patterns`, `ecc:flutter-test`,
 `ecc:dart-flutter-patterns`, `ecc:security-review`, `ecc:docker-patterns`, `ecc:git-workflow`.
+
+## Lições de campo (obrigatórias)
+- **Logs em release**: `dart:developer log` não aparece no APK release. Transições importantes
+  (boot, WebSocket) usam `print('[chatito.<área>] …')`, sem conteúdo de mensagem nem token.
+- **Config persistida**: tudo que o usuário digita no onboarding (URL do servidor, nome) vai para o
+  `KeyStore`; nunca dependa de estado em memória sobreviver a um reinício.
+- **Sessão antes de rede**: qualquer método da fachada que precise de sessão aguarda `_ready`;
+  `connect()` é single-flight; a UI nunca cria um segundo cliente.
+- **Navegação**: tela que pode abrir sem pilha (banner, deep link) tem botão de voltar explícito;
+  prefira `push` a `go` para telas secundárias.
+- **Desktop**: chaves em `FileKeyStore`; não use keychain do macOS sem assinatura com Team ID.
+- **Depuração em campo**: `adb -s <serial> logcat -d | grep 'chatito\.'` e o log do relay
+  (`docker compose -f docker/docker-compose.dev.yml logs relay`). Antes de concluir "não conecta",
+  confirme que o app está em primeiro plano com a tela ligada (`svc power stayon usb` nos testes).
+- **Validação local**: `flutter test` no Mac exige Xcode completo; alternativa é a imagem
+  `chatito-flutter:3.47.2` (Dockerfile no scratchpad da sessão, replicável a partir do `debian:bookworm-slim`).

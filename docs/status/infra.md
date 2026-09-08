@@ -1,3 +1,5 @@
+> Estado consolidado do projeto: `docs/STATUS.md` (2026-09-08). Este arquivo é o histórico do agente **infra**.
+
 # Status — agente infra
 ## Feito
 - APK release assinado pelo Gradle: `app/android/app/build.gradle.kts` lê `android/key.properties` (storeFile/storePassword/keyAlias/keyPassword) se existir; sem ele cai no signing de debug. Plugin `com.google.gms.google-services` declarado em `settings.gradle.kts` (`apply false`) e aplicado condicionalmente só se `google-services.json` existir.

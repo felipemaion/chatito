@@ -1,3 +1,5 @@
+> Estado consolidado do projeto: `docs/STATUS.md` (2026-09-08). Este arquivo é o histórico do agente **app-core**.
+
 # Status — agente app-core
 
 ## Feito

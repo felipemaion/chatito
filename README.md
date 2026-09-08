@@ -122,6 +122,22 @@ substituir a pasta/app). Os dados ficam no perfil do usuário e sobrevivem.
 Depois de instalar: peça um convite ao admin, cole na tela de onboarding, e **confira o safety
 number** presencialmente com cada pessoa (Ajustes → Verificar chave).
 
+## Configurar o servidor no app
+
+No onboarding o app pede o código de convite, o nome do aparelho e a **URL do servidor**
+(`http://<ip>:8080` na Wi-Fi local; `https://<domínio>` após o deploy). A URL fica gravada e pode ser
+trocada em **Ajustes → Servidor**. Se aparecer a faixa "Servidor não configurado", toque em Ajustes.
+
+## Depuração em campo (Android por USB)
+
+```bash
+adb devices                                      # depuração USB ligada no aparelho
+adb -s <serial> logcat -d | grep 'chatito\.'     # [chatito.boot] e [chatito.ws] (também no release)
+docker compose -f docker/docker-compose.dev.yml logs --since 5m relay | grep 'ws '
+```
+
+Estado atual e pendências: `docs/STATUS.md`. Lições de campo: `PLAN.md` §9.
+
 ## Deploy (VPS Oracle)
 
 Push em `main` que toque `server/**`, `docker/**` ou `cron/**` (ou `workflow_dispatch`) roda

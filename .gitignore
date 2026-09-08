@@ -29,3 +29,6 @@ service-account*.json
 .DS_Store
 .vscode/
 *.log
+
+# Xcode / SwiftPM (gerado no build macOS)
+app/macos/**/xcshareddata/swiftpm/

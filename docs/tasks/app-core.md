@@ -1,3 +1,5 @@
+> **Concluído** (Fase 1, 2026-09-06/07). Mantido como referência do escopo original.
+
 # Tarefa — agente **app-core** (branch `feat/app-core`, escopo `app/lib/{crypto,protocol,transport,storage,domain}` + `app/test/**` correspondente + `app/pubspec.yaml`)
 
 Núcleo do cliente Flutter em **Dart puro** (sem `import 'package:flutter/…'` nessas camadas, exceto

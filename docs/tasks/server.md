@@ -1,3 +1,5 @@
+> **Concluído** (Fase 1, 2026-09-06/07). Mantido como referência do escopo original.
+
 # Tarefa — agente **server** (branch `feat/server`, escopo `server/**`)
 
 Implementar o relay completo conforme `docs/PROTOCOL.md`, em Go 1.25, **TDD**, sem CGO.

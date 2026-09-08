@@ -2,7 +2,7 @@
 
 > Mensageiro privado da família (Felipe, filhos e a mãe deles). Clientes macOS, Windows e
 > Android. Servidor de relay **cego** (E2E) que guarda envelopes só até serem entregues.
-> Status (2026-09-07): **Fases 0–2 concluídas** (infra, server, app-core, integração real Go↔Dart mesclados; app-ui em merge final). Próximo: tag `v0.1.0` (release), Fase 4 quando houver domínio.
+> Status (2026-09-08): **Fases 0–2 concluídas e validadas em campo** — A26, Galaxy S8 e Mac trocando mensagens e arquivos pelo relay local, com reconexão após segundo plano. Detalhes e lições em `docs/STATUS.md`. Próximo: tag `v0.1.0` (release), Firebase (push), Fase 4 quando houver domínio.
 
 ---
 
@@ -204,3 +204,19 @@ Fases 0, 2, 3 e 4 são bem menores (1–2 agentes).
 
 Com sua aprovação deste plano, a Fase 0 começa: criar o repo privado, instalar Flutter/Android
 SDK (download grande, ~2–3 GB), escrever `PROTOCOL.md` e abrir a janela `dev` com os 4 agentes.
+
+---
+
+## 9. Estado em 2026-09-08 e lições de campo
+
+Resumo vivo em `docs/STATUS.md`. O que a fase de campo ensinou (e virou regra em `CLAUDE.md`):
+
+| Lição | Consequência no código |
+| --- | --- |
+| A URL do servidor não era persistida; após reiniciar o app voltava ao endereço do emulador (`10.0.2.2`) | URL gravada no `KeyStore`, carregada antes de construir a fachada; campo "Servidor" em Ajustes; faixa "Servidor não configurado" |
+| `dart:developer log` some no build release (AOT) | Logs de transição via `print('[chatito.ws] …')`/`[chatito.boot]` — visíveis no `logcat` |
+| A UI pedia conexão antes de a sessão carregar | `RealChatFacade` aguarda `_ready`; `connect()` single-flight; conexão automática após restaurar sessão |
+| Timeout do handshake deixava sockets zumbis que derrubavam a conexão boa (4409) | Gerações de conexão; 4409 não é terminal; watchdog de socket mudo |
+| Keychain do macOS exige assinatura estável (cada build ad-hoc pedia senha e perdia a identidade) | `FileKeyStore` (arquivo 0600 no container do app) em macOS/Windows/Linux; Android segue no Keystore |
+| Runners macOS/Windows esgotaram a cota do Actions em um dia | Builds desktop só com label `build-desktop`/dispatch; repo público desde 2026-09-07 |
+| Rota aberta com `go` não tem "voltar" no desktop | Ajustes com `BackButton` explícito; faixa usa `push` |

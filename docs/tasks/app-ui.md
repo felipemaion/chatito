@@ -1,3 +1,5 @@
+> **Concluído** (Fase 1, 2026-09-06/07). Mantido como referência do escopo original.
+
 # Tarefa — agente **app-ui** (branch `feat/app-ui`, escopo `app/lib/ui/**`, `app/lib/platform/**`, `app/lib/main.dart`, `app/test/ui/**`, assets)
 
 UI Flutter para macOS, Windows e Android, consumindo a interface `ChatFacade` do app-core

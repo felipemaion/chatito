@@ -1,3 +1,5 @@
+> **Concluído** (Fase 1, 2026-09-06/07). Mantido como referência do escopo original.
+
 # Tarefa — agente **infra** (branch `feat/infra`, escopo `docker/**`, `.github/**`, `cron/**`, `docs/ops/**`, `README.md`)
 
 ## Entregas (nesta ordem; commit + status a cada item)

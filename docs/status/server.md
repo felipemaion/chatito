@@ -1,3 +1,5 @@
+> Estado consolidado do projeto: `docs/STATUS.md` (2026-09-08). Este arquivo é o histórico do agente **server**.
+
 # Status — agente server
 ## Feito
 - [x] 1. `internal/store` — SQLite (modernc, WAL, FK), schema embutido, users/invites/devices/envelopes/blobs
