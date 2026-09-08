@@ -19,6 +19,6 @@
 - **server**: healthcheck de produção usa `/relay -healthcheck` (compose) e o RUNBOOK assume `/relay admin bootstrap --name X` e `admin invite --user X`. Até existirem, container em prod ficaria `unhealthy` e `deploy.sh` falharia no gate (não deployamos nesta fase).
 - **app-ui**: para o APK release nascer assinado pelo Gradle, `app/android/app/build.gradle.kts` deve ler `android/key.properties` (o workflow já o escreve). Enquanto não ler, o `release.yml` re-assina com `apksigner` — funciona, mas é contorno. Também: aplicar `com.google.gms.google-services` + decodificar `GOOGLE_SERVICES_JSON_B64` no `release.yml` quando o plugin entrar.
 - **Felipe**: domínio, projeto Firebase (FIREBASE.md), keystore Android (README → Release) e secrets do environment `production` (RUNBOOK §14). Nada foi executado no Oracle.
-- Assumido sem confirmar: nome do `.app` macOS = `piriquito.app` (PRODUCT_NAME atual); `.zip` Windows sem instalador; imagem ghcr publicada mas o compose de prod continua com `build:` local (RUNBOOK §7 explica a alternativa).
+- Assumido sem confirmar: nome do `.app` macOS = `Piriquito.app` (PRODUCT_NAME atual); `.zip` Windows sem instalador; imagem ghcr publicada mas o compose de prod continua com `build:` local (RUNBOOK §7 explica a alternativa).
 ## Próximo
 - Fase 4: executar RUNBOOK no Oracle quando o domínio existir; testar `release.yml` com uma tag `v0.0.1-rc` após o app buildar nas três plataformas.

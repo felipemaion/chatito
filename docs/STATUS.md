@@ -1,4 +1,4 @@
-# Piriquito — estado do projeto (2026-09-08)
+| Onboarding no app novo (A26, S8, Mac) após a renomeação (2026-09-08) | Felipe | APK Piriquito já instalado no A26 e no S8 (o Chatito antigo continua ao lado até desinstalar); Mac usa `Piriquito.app`; convites: Felipe `C0GY-P53B`, Mãe `52SP-T0P9` (válidos até 2026-09-15); servidor `http://192.168.15.8:8080` |# Piriquito — estado do projeto (2026-09-08)
 
 Fonte única de "onde estamos". Histórico por agente em `docs/status/<agente>.md`.
 

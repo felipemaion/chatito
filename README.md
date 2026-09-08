@@ -85,7 +85,7 @@ docker buildx build --platform linux/arm64,linux/amd64 -f docker/Dockerfile -t p
 
 cd app
 flutter build apk --release        # build/app/outputs/flutter-apk/app-release.apk
-flutter build macos --release      # build/macos/Build/Products/Release/piriquito.app
+flutter build macos --release      # build/macos/Build/Products/Release/Piriquito.app
 flutter build windows --release    # build/windows/x64/runner/Release/
 ```
 
@@ -113,7 +113,7 @@ gh secret set ANDROID_STORE_PASSWORD --repo felipemaion/piriquito
 | Plataforma | Como | Aviso esperado |
 | --- | --- | --- |
 | **Android** | Baixar o `.apk` no celular → abrir → permitir "instalar apps desconhecidos" para o navegador/Arquivos | Play Protect pode pedir confirmação ("instalar mesmo assim") |
-| **macOS** | Abrir o `.dmg` → arrastar `piriquito.app` para *Applications* → **botão direito → Abrir** na 1ª vez (não notarizado) | "não pode ser verificado" — Abrir mesmo assim; ou `xattr -dr com.apple.quarantine /Applications/piriquito.app` |
+| **macOS** | Abrir o `.dmg` → arrastar `Piriquito.app` para *Applications* → **botão direito → Abrir** na 1ª vez (não notarizado) | "não pode ser verificado" — Abrir mesmo assim; ou `xattr -dr com.apple.quarantine /Applications/Piriquito.app` |
 | **Windows** | Extrair o `.zip` numa pasta (ex.: `C:\Piriquito`) → executar `piriquito.exe`; atalho manual | SmartScreen: *Mais informações → Executar assim mesmo* (sem assinatura) |
 
 Atualizar = instalar a versão nova por cima (Android exige a **mesma** assinatura; macOS/Windows

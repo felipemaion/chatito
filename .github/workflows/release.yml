@@ -79,10 +79,10 @@ jobs:
       - name: Empacotar .dmg (sem notarização)
         run: |
           brew install create-dmg
-          APP="build/macos/Build/Products/Release/piriquito.app"
+          APP="build/macos/Build/Products/Release/Piriquito.app"
           test -d "$APP"
           create-dmg --volname "Piriquito" --window-size 500 300 --icon-size 100 \
-            --icon "piriquito.app" 125 150 --app-drop-link 375 150 --no-internet-enable \
+            --icon "Piriquito.app" 125 150 --app-drop-link 375 150 --no-internet-enable \
             "build/piriquito-${GITHUB_REF_NAME}-macos.dmg" "$APP"
       - uses: actions/upload-artifact@v4
         with: { name: macos, path: app/build/piriquito-*.dmg, if-no-files-found: error }
