@@ -1,7 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Piriquito: silhueta do periquito-de-encontro-amarelo tracada da foto, com gradientes -->
-  <g transform="translate(16.00 116.70) scale(0.86957)">
-<defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 72 506 355">
+  <defs>
     <linearGradient id="corpo" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#134F00"/><stop offset="0.5" stop-color="#479A13"/><stop offset="1" stop-color="#98DE62"/>
     </linearGradient>
@@ -166,8 +164,4 @@
   <circle cx="431.3" cy="118.6" r="7.5" fill="#F4F4F4"/>
   <circle cx="431.8" cy="119.1" r="5.2" fill="#1E1E1E"/>
   <circle cx="433.5" cy="116.8" r="1.8" fill="#FFFFFF"/>
-  </g>
-  <!-- balão de fala -->
-  <path d="M322 36 H478 a28 28 0 0 1 28 28 V120 a28 28 0 0 1 -28 28 H430 L432 190 L392 148 H322 a28 28 0 0 1 -28 -28 V64 a28 28 0 0 1 28 -28 Z" fill="#1F6A1F"/>
-  <circle cx="368" cy="92" r="11" fill="#FFFFFF"/><circle cx="400" cy="92" r="11" fill="#FFFFFF"/><circle cx="432" cy="92" r="11" fill="#FFFFFF"/>
 </svg>
