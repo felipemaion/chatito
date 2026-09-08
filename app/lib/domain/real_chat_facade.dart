@@ -270,6 +270,12 @@ class RealChatFacade implements ChatFacade {
       _directory.refresh(await _requireReady());
 
   @override
+  Future<void> setPushToken(String? token) async {
+    await _requireReady();
+    await _ctx.api.setPushToken(token);
+  }
+
+  @override
   Future<SafetyNumber> safetyNumber(String deviceId) async {
     final s = await _requireReady();
     final other = await _ctx.db.deviceById(deviceId);

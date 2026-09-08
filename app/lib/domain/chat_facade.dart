@@ -34,6 +34,11 @@ abstract interface class ChatFacade {
   Stream<List<Contact>> watchContacts();
   Future<void> refreshDirectory();
 
+  /// Registra no relay o token de push (FCM) deste aparelho, para o servidor
+  /// acordar o app quando chegar envelope e ele estiver sem WebSocket.
+  /// `null` desliga o push. Exige sessão.
+  Future<void> setPushToken(String? token);
+
   /// Safety number entre **meu** device e [deviceId].
   Future<SafetyNumber> safetyNumber(String deviceId);
 
