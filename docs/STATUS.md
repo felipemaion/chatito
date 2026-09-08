@@ -1,12 +1,17 @@
-| Onboarding no app novo (A26, S8, Mac) após a renomeação (2026-09-08) | Felipe | APK Piriquito já instalado no A26 e no S8 (o Chatito antigo continua ao lado até desinstalar); Mac usa `Piriquito.app`; convites: Felipe `C0GY-P53B`, Mãe `52SP-T0P9` (válidos até 2026-09-15); servidor `http://192.168.15.8:8080` |# Piriquito — estado do projeto (2026-09-08)
+# Piriquito — estado do projeto (2026-09-08, Fase 4 no ar)
 
 Fonte única de "onde estamos". Histórico por agente em `docs/status/<agente>.md`.
 
 ## Funciona hoje
 - **Nome**: o projeto chamava-se Chatito até 2026-09-08 (PR #15). O repo antigo redireciona; imagens, volumes
   e apps instalados com o nome antigo não são migrados.
-- **Relay** (Go) em Docker local, projeto `piriquito`, `127.0.0.1:8080` (exposto na LAN via override
-  quando necessário). Bootstrap/convites: `docker compose -f docker/docker-compose.dev.yml exec -T relay /relay admin invite --user NOME`.
+- **Relay em produção**: `https://piriquito.maionesys.com` (Oracle, container `piriquito-relay` atrás de
+  Cloudflare + Caddy; CD pelo `deploy.yml` a cada push em `main` que toque `server/`, `docker/`, `cron/`).
+  Operação do servidor: orquestrador da sessão tmux `Oracle` (regras em `~/Projects/OracleServer/SERVER.md`).
+  Convites de produção: `docker compose -f docker/docker-compose.yml exec -T relay /relay admin invite --user NOME`
+  em `/home/piriquito.maionesys.com/repo`, como `piriquito01`.
+- **Relay local** (dev): Docker, projeto `piriquito`, `127.0.0.1:8080` (exposto na LAN via override quando
+  necessário). Bootstrap/convites: `docker compose -f docker/docker-compose.dev.yml exec -T relay /relay admin invite --user NOME`.
 - **App** (Flutter) em `main`: Android (APK arm64 release, `flutter build apk --release --split-per-abi`),
   macOS (build debug local; keychain substituído por arquivo), Windows (build na CI sob demanda).
 - **Validado em campo** (2026-09-07/08): Galaxy A26, Galaxy S8 e Mac conectados ao mesmo tempo; texto,
@@ -17,17 +22,16 @@ Fonte única de "onde estamos". Histórico por agente em `docs/status/<agente>.m
 
 ## Como um aparelho novo entra
 1. Admin gera convite (comando acima). 2. No app: código, nome do aparelho e **URL do servidor**
-(`http://<ip-ou-domínio>:8080`). 3. Conferir safety number presencialmente. A URL pode ser
+(release já vem com `https://piriquito.maionesys.com`). 3. Conferir safety number presencialmente. A URL pode ser
 alterada depois em **Ajustes → Servidor** (aparelhos anteriores a 2026-09-07 precisam preencher
 uma vez: a faixa "Servidor não configurado" leva até lá).
 
 ## Pendências
 | Item | Dono | Observação |
 | --- | --- | --- |
-| Reinstalar o app nos aparelhos (A26, S8, Mac) após a renomeação para Piriquito (2026-09-08) | Felipe | `applicationId`/bundle id mudaram para `br.com.maion.piriquito`: o app antigo (Chatito) fica ao lado; gerar convites novos e refazer o onboarding; depois desinstalar o antigo |
+| Onboarding no app novo (A26, S8, Mac) em **produção** (2026-09-08) | Felipe | APK Piriquito instalado no A26 e no S8 (o Chatito antigo continua ao lado até desinstalar); Mac usa `Piriquito.app`. Build release já vem com `https://piriquito.maionesys.com` como servidor padrão. Convites: Felipe `A0QP-KYAN` (válido até 2026-09-15); Mãe: pedido ao orquestrador do Oracle |
 | Release `v0.1.0` (APK assinado, `.dmg`, `.zip`) via `release.yml` | orquestrador | precisa de keystore Android (README › Release) |
 | Firebase (push com app fechado) | Felipe + infra | `docs/ops/FIREBASE.md` |
-| Domínio + deploy no Oracle (Fase 4) | Felipe + infra | `docs/ops/RUNBOOK.md`; sem isso o app só funciona na Wi-Fi do Mac |
 | Remover aparelhos "Mac" órfãos | Felipe | Ajustes → Meus aparelhos |
 | Rotação de chave (`key_change` emitido) | app-core | v1 só detecta troca pelo diretório |
 | Histórico do git contém o IP do Oracle | Felipe decide | `git filter-repo` + force push, se quiser |

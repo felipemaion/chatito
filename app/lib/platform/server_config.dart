@@ -3,12 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/storage.dart';
 import 'platform_info.dart';
 
-/// Endereço padrão do relay em desenvolvimento local: loopback no desktop,
-/// alias especial do emulador Android para o `localhost` da máquina host.
-/// Só serve de ponto de partida — nunca é o endereço certo fora do
-/// emulador/desktop de dev (ver [savedServerUrlProvider]).
-String defaultServerUrl(PlatformInfo platform) =>
-    platform.isAndroid ? 'http://10.0.2.2:8080' : 'http://127.0.0.1:8080';
+/// Relay de produção (Fase 4): Oracle atrás da Cloudflare + Caddy.
+const productionServerUrl = 'https://piriquito.maionesys.com';
+
+/// Endereço padrão do relay. Em build release é o de produção; em
+/// desenvolvimento é o relay local (loopback no desktop, alias especial do
+/// emulador Android para o `localhost` da máquina host). O usuário sempre pode
+/// trocar no onboarding ou em Ajustes (ver [savedServerUrlProvider]).
+String defaultServerUrl(
+  PlatformInfo platform, {
+  bool release = const bool.fromEnvironment('dart.vm.product'),
+}) {
+  if (release) return productionServerUrl;
+  return platform.isAndroid ? 'http://10.0.2.2:8080' : 'http://127.0.0.1:8080';
+}
 
 /// `true` se [input] é `http://host[:porta]` ou `https://host[:porta]` — só
 /// o endereço base do relay, sem caminho/query/fragmento.
