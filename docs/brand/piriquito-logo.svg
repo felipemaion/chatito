@@ -26,10 +26,11 @@
   <circle cx="304" cy="193" r="10" fill="#1E1E1E"/>
   <circle cx="308" cy="188" r="4" fill="#FFFFFF"/>
   <!-- bico em gancho, aberto (falando) -->
-  <path d="M330 196 Q384 200 380 226 Q374 246 360 250 L336 232 Z" fill="#F2A04D"/>
-  <path d="M338 236 L362 250 L342 250 Z" fill="#7A2E1E"/>
-  <path d="M330 240 L366 254 Q362 276 342 274 Q326 266 330 240 Z" fill="#D9843A"/>
-  <ellipse cx="340" cy="200" rx="9" ry="7" fill="#7FB3E6"/>
+  <path d="M334 228 L364 252 L354 260 L330 238 Z" fill="#5C1F14"/>
+  <path d="M330 238 L354 260 C350 272 338 274 334 268 C328 258 328 248 330 238 Z" fill="#D9843A"/>
+  <path d="M328 192 C352 182 382 196 380 220 C379 232 372 244 364 252 L334 228 C329 218 327 204 328 192 Z" fill="#F2A04D"/>
+  <path d="M340 198 C356 192 370 200 374 212" stroke="#FFC978" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <ellipse cx="334" cy="196" rx="9" ry="6" fill="#7FB3E6"/>
   <!-- balão de fala -->
   <path d="M362 40 H478 a30 30 0 0 1 30 30 V128 a30 30 0 0 1 -30 30 H412 L376 200 L384 158 H362 a30 30 0 0 1 -30 -30 V70 a30 30 0 0 1 30 -30 Z" fill="#2E7D32"/>
   <circle cx="386" cy="99" r="11" fill="#FFFFFF"/>
