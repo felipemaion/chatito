@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: app } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with: { distribution: temurin, java-version: '17' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
@@ -64,14 +64,14 @@ jobs:
         run: |
           flutter build apk --debug
           cp build/app/outputs/flutter-apk/app-debug.apk "build/piriquito-${GITHUB_REF_NAME}-android-debug.apk"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: android, path: app/build/piriquito-*.apk, if-no-files-found: error }
 
   macos:
     runs-on: macos-latest
     defaults: { run: { working-directory: app } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
       - run: flutter pub get
@@ -84,14 +84,14 @@ jobs:
           create-dmg --volname "Piriquito" --window-size 500 300 --icon-size 100 \
             --icon "Piriquito.app" 125 150 --app-drop-link 375 150 --no-internet-enable \
             "build/piriquito-${GITHUB_REF_NAME}-macos.dmg" "$APP"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: macos, path: app/build/piriquito-*.dmg, if-no-files-found: error }
 
   windows:
     runs-on: windows-latest
     defaults: { run: { working-directory: app } }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
       - run: flutter pub get
@@ -101,7 +101,7 @@ jobs:
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* `
             -DestinationPath "build/piriquito-$env:GITHUB_REF_NAME-windows.zip"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: windows, path: app/build/piriquito-*.zip, if-no-files-found: error }
 
   server-image:
@@ -110,15 +110,15 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/Dockerfile
@@ -136,8 +136,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         # Só os instaladores: o registro *.dockerbuild do build-push-action falha no download.
         with: { path: dist, merge-multiple: true, pattern: '{android,macos,windows}' }
       - name: Checksums
